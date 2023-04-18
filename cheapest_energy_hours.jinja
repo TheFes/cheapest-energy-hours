@@ -46,7 +46,7 @@
                             {%- set ns.max = max %}
                             {%- set ns.average = a %}
                             {%- set ns.start = as_datetime(i[tk]) if str else i[tk] %}
-                            {%- set ns.end = ns.start + timedelta(hours=h) %}
+                            {%- set ns.end = ns.start + timedelta(hours=h+1) %}
                         {%- endif %}
                     {%- endfor %}
                     {# output date based on the selected mode#}

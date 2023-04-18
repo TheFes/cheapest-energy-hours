@@ -1,9 +1,9 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 ![Version](https://img.shields.io/github/v/release/TheFes/easy-energy-price)
 
-# Easy Energy Price
+# Cheapest Energy Hours
 
-A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer
+A jinja macro to easily find the cheapest consecutive block of hours to know when to turn on your dryer
 
 ## Why this macro
 
@@ -33,29 +33,5 @@ sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow,
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: 'min' (lowest price in hours found), 'max' (highest price in hours found), 'average' (average price in hours found), 'start' (start of the hours found), 'end' (end of the hours found), 'list' (list with the prices in hours found)|
 
-Example usage:
-Using a sensor state:
-```jinja
-{% from 'relative_time_plus.jinja' import relative_time_plus %}
-{{ relative_time_plus(states('sensor.uptime'), parts=3, week=false, time=true, verbose=true, language='nl') }}
-```
-This will output something like
-`10 dg, 2 u en 7 min`
-
-Using a last_changed datetime of an entity:
-```jinja
-{% from 'relative_time_plus.jinja' import relative_time_plus %}
-{{ relative_time_plus(states.light.office.last_changed, 2) }}
-```
-
-This will output something like
-`3 hours and 1 minute`
-
-Using a date string:
-```jinja
-{% from 'relative_time_plus.jinja' import relative_time_plus %}
-{{ relative_time_plus('2023-01-01', parts=2, time=false, week=false) }}
-```
-
-This will output something like (assuming the current date is 9th of April 2023)
-`3 months and 8 days`
+# Thanks to
+* @basbruss for providing the output mode 

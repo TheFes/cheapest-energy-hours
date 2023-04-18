@@ -1,4 +1,4 @@
 {
-    "name": "Easy Energy Price",
-    "filename": "easy_energy_price.jinja"
+    "name": "Cheapest Energy Hours",
+    "filename": "cheapest_energy_hours.jinja"
 }
