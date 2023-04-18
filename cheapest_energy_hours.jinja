@@ -1,4 +1,4 @@
-{%- macro easy_energy_price(sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow, lowest, mode) %}
+{%- macro cheapest_energy_hours(sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow, lowest, mode) %}
     {# Get data out of the selected entity #}
         {%- set today = state_attr(sensor, 'raw_today') %}
         {%- set tomorrow = state_attr(sensor, 'raw_tomorrow') %}

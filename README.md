@@ -1,5 +1,5 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
-![Version](https://img.shields.io/github/v/release/TheFes/easy-energy-price)
+![Version](https://img.shields.io/github/v/release/TheFes/cheapest-energy-hours)
 
 # Cheapest Energy Hours
 
@@ -11,7 +11,7 @@ If your energy provider uses dynamic pricing, you might want to know when to tur
 This macro comes to the rescue!
 
 ## How to install
-Install it in HACS, or copy the contents of `easy-energy-prices.jinja` to a jinja file in your `custom_templates` folder.
+Install it in HACS, or copy the contents of `cheapest_energy_hours.jinja` to a jinja file in your `custom_templates` folder.
 Run the `homeassistant.reload_custom_templates` service call to load the file.
 
 ## How to use
