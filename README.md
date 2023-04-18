@@ -34,4 +34,4 @@ sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow,
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: 'min' (lowest price in hours found), 'max' (highest price in hours found), 'average' (average price in hours found), 'start' (start of the hours found), 'end' (end of the hours found), 'list' (list with the prices in hours found)|
 
 # Thanks to
-* @basbruss for providing the output mode 
+* [@basbruss](https://github.com/basbruss) for providing the output mode 
