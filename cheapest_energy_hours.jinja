@@ -50,7 +50,7 @@
                         {%- endif %}
                     {%- endfor %}
                     {# output date based on the selected mode#}
-                        {{ ns[m] | round(3) if ns[m] | is_number else ns[m] }}
+                        {{ ns[m] | round(5) if ns[m] | is_number else ns[m] }}
                     {%- else %}
                         No data within current selection
                     {%- endif %}
