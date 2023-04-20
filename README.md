@@ -29,7 +29,7 @@ sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow,
 |`value_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 |`include_today`|boolean|`true`|`false`|Boolean to select if todays values should be included|
-|`includ_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
+|`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_avarage` (the avarage price taking into account the weight for the `top_hour`)|
 |`top_hour`|integer|1|2|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
