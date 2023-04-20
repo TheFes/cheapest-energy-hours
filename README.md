@@ -72,4 +72,5 @@ To find a 2 hour time block where the sensor uses the key `banana` for the show 
 ```
 
 # Thanks to
-* [@basbruss](https://github.com/basbruss) for providing the output mode
+* [@basbruss](https://github.com/basbruss) for providing the output mode 
+
