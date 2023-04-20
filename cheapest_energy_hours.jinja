@@ -35,29 +35,29 @@
                                             | list
                     %}
                 {# Check if there is data, and find the right hour block #}
-                    {%- if values %}
-                    {%- set ns = namespace(average=none, start=none, min=none, max=none, weighted_average=none) %}
-                    {%- for i in values[:values|length-(h-1)] %}
-                        {%- set ix = loop.index0 %}
-                        {%- set list = values[ix:ix+h] | map(attribute=vk) | list  %}
-                        {%- set a = (list | sum  + list[th-1] * (hw-1)) / (h + (hw -1)) %}
-                        {%- set b = ns.weighted_average %}
-                        {%- set min = list | min  %}
-                        {%- set max = list | max  %}
-                        {%- if ns.average is none or ((a < b) if l else (a > b)) %}
-                            {%- set ns.list = list %}
-                            {%- set ns.min = min %}
-                            {%- set ns.max = max %}
-                            {%- set ns.weighted_average = a %}
-                            {%- set ns.average = list | average %}
-                            {%- set ns.start = as_datetime(i[tk]) if str else i[tk] %}
-                            {%- set ns.end = ns.start + timedelta(hours=h+1) %}
-                        {%- endif %}
-                    {%- endfor %}
-                    {# output date based on the selected mode#}
-                        {{ ns[m] | round(5) if ns[m] | is_number else ns[m] }}
+                    {%- if values | count >= h %}
+                        {%- set ns = namespace(average=none, start=none, min=none, max=none, weighted_average=none) %}
+                        {%- for i in values[:values|length-(h-1)] %}
+                            {%- set ix = loop.index0 %}
+                            {%- set list = values[ix:ix+h] | map(attribute=vk) | list  %}
+                            {%- set a = (list | sum  + list[th-1] * (hw-1)) / (h + (hw -1)) %}
+                            {%- set b = ns.weighted_average %}
+                            {%- set min = list | min  %}
+                            {%- set max = list | max  %}
+                            {%- if ns.average is none or ((a < b) if l else (a > b)) %}
+                                {%- set ns.list = list %}
+                                {%- set ns.min = min %}
+                                {%- set ns.max = max %}
+                                {%- set ns.weighted_average = a %}
+                                {%- set ns.average = list | average %}
+                                {%- set ns.start = as_datetime(i[tk]) if str else i[tk] %}
+                                {%- set ns.end = ns.start + timedelta(hours=h+1) %}
+                            {%- endif %}
+                        {%- endfor %}
+                        {# output date based on the selected mode#}
+                            {{ ns[m] | round(5) if ns[m] | is_number else ns[m] }}
                     {%- else %}
-                        No data within current selection
+                        No{{ 't enough' if values }} data within current selection
                     {%- endif %}
         {% endif %}
 {%- endmacro %}
