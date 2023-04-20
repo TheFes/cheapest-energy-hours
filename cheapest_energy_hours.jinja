@@ -1,17 +1,19 @@
-{%- macro easy_energy_price(sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow, lowest, mode) %}
+{%- macro cheapest_energy_hours(sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow, lowest, mode, top_hour, hour_weight) %}
     {# Get data out of the selected entity #}
         {%- set today = state_attr(sensor, 'raw_today') %}
         {%- set tomorrow = state_attr(sensor, 'raw_tomorrow') %}
         {%- set m = mode | default('start') %}
+        {%- set h = hours | default(1) | int(1) %}
     {# Check if data is available and mode is correct#}
         {% if not today and not tomorrow %}
             No valid data in selected sensor
         {%- elif m not in ['min', 'max', 'average', 'start', 'end', 'list'] %}
             Invalid mode selected
+        {%- elif top_hour is defined and not (0 < top_hour | int(0) <= h) %}
+            Invalid top_hour selected
         {% else %}
             {# Set defaults for variables which are not provided #}
                     {%- set tk, vk = time_key | default('start'), value_key | default('value') %}
-                    {%- set h = hours | default(1) | int(1) %}
                     {%- set l = lowest | default(true) | bool(true) %}
                     {%- set itd = include_today | default(true) | bool(true) %}
                     {%- set it = include_tomorrow | default(false) | bool(false) %}
@@ -19,6 +21,8 @@
                     {%- set s = s + timedelta(days=1) if not itd else s %}
                     {%- set e = (today_at(end) if end is defined else today_at() + timedelta(days=1)) + timedelta(days=1 if it else 0) %}
                     {%- set e = e + timedelta(days=1) if not itd and end is defined else e %}
+                    {%- set th = top_hour | default(1) | int %}
+                    {%- set hw = hour_weight | default(2) if top_hour is defined else 1 %}
                 {# Check if the dateteime in the sensor is a string, and convert start and end if needed #}
                     {%- set str = today[0][tk] is string %}
                     {%- set s, e = s.isoformat() if str else s, e.isoformat() if str else e %}
@@ -36,7 +40,7 @@
                     {%- for i in values[:values|length-(h-1)] %}
                         {%- set ix = loop.index0 %}
                         {%- set list = values[ix:ix+h] | map(attribute=vk) | list  %}
-                        {%- set a = list | average  %}
+                        {%- set a = (list | sum  + list[th-1] * (hw-1)) / (h + (hw -1)) %}
                         {%- set b = ns.average %}
                         {%- set min = list | min  %}
                         {%- set max = list | max  %}
