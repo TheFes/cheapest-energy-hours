@@ -15,7 +15,7 @@ Install it in HACS, or copy the contents of `cheapest_energy_hours.jinja` to a j
 Run the `homeassistant.reload_custom_templates` service call to load the file.
 
 ## How to use
-The only required field is the sensor which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide the attributes `raw_today` and `raw_tomorrow` which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
+The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide the attributes `raw_today` and `raw_tomorrow` which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
 Other optional fields are:
 
@@ -32,6 +32,44 @@ sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow,
 |`include tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: 'min' (lowest price in hours found), 'max' (highest price in hours found), 'average' (average price in hours found), 'start' (start of the hours found), 'end' (end of the hours found), 'list' (list with the prices in hours found)|
+|`top_hour`|integer|1|2|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
+|`hour_weight`|float|2|2.5|The weight to add to the `top_hour` setting. If no `top_hour` is provided all hours have equal weight, when a `top_hour` is provided the default for this setting is `2`. Values below `1` will decrease the weight of the selected `top_hour`|
+
+### Examples
+You always need to import the macro, so the first line should always be:
+```jinja
+{% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
+```
+
+To get the start datetime of an a 3 hour time block when the energy price is lowest, only taking account the data of today
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3) }}
+```
+
+To include also the prices of tomorrow (if available)
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, include_tomorrow=true) }}
+```
+
+To show the average price in the 3 hour period:
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, mode='average') }}
+```
+
+To list the prices of the most expesive 5 hour time block
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=5, lowest=false, mode='list') }}
+```
+
+To find the end datetime of a 4 hour time block where the 3rd hour has been given a weight of 5
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=4, lowest=false, mode='end', top_hour=3, hour_weight=5) }}
+```
+
+To find a 2 hour time block where the sensor uses the key `banana` for the show the dateime, and `apple` to show the energy price
+```jinja
+{{ cheapest_energy_hours('sensor.fruity_energy_prices', time_key='banana', value_key='apple', hours=2) }}
+```
 
 # Thanks to
-* @basbruss for providing the output mode 
+* [@basbruss](https://github.com/basbruss) for providing the output mode
