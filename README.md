@@ -17,9 +17,7 @@ Run the `homeassistant.reload_custom_templates` service call to load the file.
 ## How to use
 The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide the attributes `raw_today` and `raw_tomorrow` which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
-Other optional fields are:
-
-`sensor`, `hours`, `start`, `end`, `time_key`, `value_key`, `include_today`, `include_tomorrow`, `lowest`, `mode`
+Other optional fields are listed below:
 
 |name|type|default|example|description|
 |---|---|---|---|---|
@@ -34,6 +32,8 @@ Other optional fields are:
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_avarage` (the avarage price taking into account the weight for the `top_hour`)|
 |`top_hour`|integer|1|2|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
 |`hour_weight`|float|2|2.5|The weight to add to the `top_hour` setting. If no `top_hour` is provided all hours have equal weight, when a `top_hour` is provided the default for this setting is `2`. Values below `1` will decrease the weight of the selected `top_hour`|
+|`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
+|`time_format`|string|`none`|time24|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 
 ### Examples
 You always need to import the macro, so the first line should always be:
