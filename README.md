@@ -22,7 +22,7 @@ Other optional fields are listed below:
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`hours`|integer|`1`|`3`|The number of consecutive hours|
-|`start`|string|"00:00"|"19:00"|Start time to take into consideration for the value selection, use `now().strftime("%H:00")` if you don't want hours in the past|
+|`start`|string|"00:00"|"19:00"|Start time to take into consideration for the value selection|
 |`end`|string|`none`|"23:00"|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow|
 |`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
@@ -45,6 +45,17 @@ To get the start datetime of an a 3 hour time block when the energy price is low
 ```jinja
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3) }}
 ```
+
+To only show the time in 24 hour format, and not the entire datetime string
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, time_format='time24') }}
+```
+
+To also include seconds for the time, and do not take the hours in the past into account
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, time_format='%H:%M:%S', look_ahead=true) }}
+```
+
 
 To include also the prices of tomorrow (if available)
 ```jinja
