@@ -19,14 +19,14 @@ The only required field is the `sensor` which provides you the data. I use the [
 
 Other optional fields are:
 
-sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow, lowest, mode)
+`sensor`, `hours`, `start`, `end`, `time_key`, `value_key`, `include_today`, `include_tomorrow`, `lowest`, `mode`
 
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`hours`|integer|`1`|`3`|The number of consecutive hours|
 |`start`|string|"00:00"|"19:00"|Start time to take into consideration for the value selection, use `now().strftime("%H:00")` if you don't want hours in the past|
 |`end`|string|`none`|"23:00"|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow|
-|`value_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
+|`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 |`include_today`|boolean|`true`|`false`|Boolean to select if todays values should be included|
 |`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
