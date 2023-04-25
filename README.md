@@ -19,6 +19,7 @@ The only required field is the `sensor` which provides you the data. I use the [
 
 Other optional fields are listed below:
 
+### Basic settings
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`hours`|integer|`1`|`3`|The number of consecutive hours|
@@ -30,12 +31,16 @@ Other optional fields are listed below:
 |`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_avarage` (the avarage price taking into account the weight for the `top_hour`)|
-|`top_hour`|integer|1|2|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
-|`hour_weight`|float|2|2.5|The weight to add to the `top_hour` setting. If no `top_hour` is provided all hours have equal weight, when a `top_hour` is provided the default for this setting is `2`. Values below `1` will decrease the weight of the selected `top_hour`|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
 |`time_format`|string|`none`|time24|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 
-### Examples
+### Advanced settings
+|name|type|default|example|description|
+|---|---|---|---|---|
+|`top_hour`|integer|1|2|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
+|`hour_weight`|float|2|2.5|The weight to add to the `top_hour` setting. If no `top_hour` is provided all hours have equal weight, when a `top_hour` is provided the default for this setting is `2`. Values below `1` will decrease the weight of the selected `top_hour`|
+
+### Basic examples
 You always need to import the macro, so the first line should always be:
 ```jinja
 {% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
@@ -44,6 +49,11 @@ You always need to import the macro, so the first line should always be:
 To get the start datetime of an a 3 hour time block when the energy price is lowest, only taking account the data of today
 ```jinja
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3) }}
+```
+
+To find a 2 hour time block where the sensor uses the key `banana` for the show the dateime, and `apple` to show the energy price
+```jinja
+{{ cheapest_energy_hours('sensor.fruity_energy_prices', time_key='banana', value_key='apple', hours=2) }}
 ```
 
 To only show the time in 24 hour format, and not the entire datetime string
@@ -55,7 +65,6 @@ To also include seconds for the time, and do not take the hours in the past into
 ```jinja
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, time_format='%H:%M:%S', look_ahead=true) }}
 ```
-
 
 To include also the prices of tomorrow (if available)
 ```jinja
@@ -72,14 +81,21 @@ To list the prices of the most expesive 5 hour time block
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=5, lowest=false, mode='list') }}
 ```
 
-To find the end datetime of a 4 hour time block where the 3rd hour has been given a weight of 5
+### Advanced examples
+
+To include also the prices of tomorrow (if available)
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=4, lowest=false, mode='end', top_hour=3, hour_weight=5) }}
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, include_tomorrow=true) }}
 ```
 
-To find a 2 hour time block where the sensor uses the key `banana` for the show the dateime, and `apple` to show the energy price
+To show the average price in the 3 hour period:
 ```jinja
-{{ cheapest_energy_hours('sensor.fruity_energy_prices', time_key='banana', value_key='apple', hours=2) }}
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, mode='average') }}
+```
+
+To list the prices of the most expesive 5 hour time block
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=5, lowest=false, mode='list') }}
 ```
 
 # Thanks to
