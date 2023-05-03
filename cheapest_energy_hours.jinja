@@ -54,7 +54,7 @@
                                 {%- set ns.weighted_average = a -%}
                                 {%- set ns.average = list | average -%}
                                 {%- set ns.start = as_datetime(i[tk]) if str else i[tk] -%}
-                                {%- set ns.end = ns.start + timedelta(hours=h+1) -%}
+                                {%- set ns.end = ns.start + timedelta(hours=h) -%}
                             {%- endif -%}
                         {%- endfor -%}
                         {# output date based on the selected mode#}
