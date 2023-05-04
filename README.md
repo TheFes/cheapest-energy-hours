@@ -11,31 +11,67 @@ If your energy provider uses dynamic pricing, you might want to know when to tur
 This macro comes to the rescue!
 
 ## How to install
-Install it in HACS, or copy the contents of `cheapest_energy_hours.jinja` to a jinja file in your `custom_templates` folder.
+You need to have Home Assistant 2023.4 or higher installed to use custom templates.
+
+To install it using HACS, you need to have experimental mode enabled, this is required to install templates.
+After that, press the button below to go directly to the right section:
+
+[![HACS repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TheFes&repository=cheapest-energy-hours&category=template)
+
+For a manual install you can copy the contents of `cheapest_energy_hours.jinja` to a jinja file in your `custom_templates` folder.
 Run the `homeassistant.reload_custom_templates` service call to load the file.
+
+
 
 ## How to use
 The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide the attributes `raw_today` and `raw_tomorrow` which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
 Other optional fields are listed below:
 
+### Source sensor settings
+|name|type|default|example|description|
+|---|---|---|---|---|
+|`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
+|`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
+
+
+### Basic data selection settings
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`hours`|integer|`1`|`3`|The number of consecutive hours|
 |`start`|string|"00:00"|"19:00"|Start time to take into consideration for the value selection|
 |`end`|string|`none`|"23:00"|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow|
-|`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
-|`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 |`include_today`|boolean|`true`|`false`|Boolean to select if todays values should be included|
 |`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
+
+### Data output settings
+|name|type|default|example|description|
+|---|---|---|---|---|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_average` (the average price taking into account the weight for the `top_hour`)|
-|`top_hour`|integer|1|2|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
-|`hour_weight`|float|2|2.5|The weight to add to the `top_hour` setting. If no `top_hour` is provided all hours have equal weight, when a `top_hour` is provided the default for this setting is `2`. Values below `1` will decrease the weight of the selected `top_hour`|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
 |`time_format`|string|`none`|time24|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 
-### Examples
+### Advanced data selection settings
+It could be that your device doesn't have a stable consumption during the period it is on. A washing machine for example will use most power at the start of the program to heat up the water, and at the end, for the spinning to get the water out again.
+To take this into account, you can provide a `weight` list which will be used to find the optimal period to turn your device on. You can even break down the hours into smaller parts, so the result could be that the device should be turned on at eg 11:45.
+To break down into smaller time fractions, you can provide a number in the `no_weight_points` setting. So to break it down into parts of 15 minutes, you need to provide `4` for this setting (4 weight points per hour).
+The list in the `weight` setting, should have the same number of items as the `hours` multiplied with the `no_weight_points`. If a list is provided, but it is has a lower amount of items then expected, it is assumed that the device is not active for the full amount of hours, and a weight of `0` is added for the missing items.
+
+|name|type|default|example|description|
+|---|---|---|---|---|
+|`no_weight_points`|integer|`1`|`4`|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
+|`weight`|list|`none`|`[25, 1, 4, 0]`|The list with weight factors to be used for the calculation| 
+
+To help getting the weight data from your device, I created a script and a template sensor which stores the data. The script requires a energy sensor for the device you want to track, and some entity to determine when to stop plotting the data (this can be an input_boolean, or the state of the device iteself)
+You can start the script manually, or automate it. The data will be stored in a template sensor called `sensor.energy_plots`.
+It will survive reboots, so you can refer to the data directly in the template for the macro, but if you store a lot of data it will be ommited from saving in your database automatically. So it might be better to store the list in another entity (an input_text for example) or just copy it in use it directly in the macro.
+
+You can find the script, sensor and an automation example [here](./example_package/package.yaml)
+
+
+### Basic examples
+
 You always need to import the macro, so the first line should always be:
 ```jinja
 {% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
@@ -44,6 +80,11 @@ You always need to import the macro, so the first line should always be:
 To get the start datetime of an a 3 hour time block when the energy price is lowest, only taking account the data of today
 ```jinja
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3) }}
+```
+
+To find a 2 hour time block where the sensor uses the key `banana` for the show the dateime, and `apple` to show the energy price
+```jinja
+{{ cheapest_energy_hours('sensor.fruity_energy_prices', time_key='banana', value_key='apple', hours=2) }}
 ```
 
 To only show the time in 24 hour format, and not the entire datetime string
@@ -55,7 +96,6 @@ To also include seconds for the time, and do not take the hours in the past into
 ```jinja
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, time_format='%H:%M:%S', look_ahead=true) }}
 ```
-
 
 To include also the prices of tomorrow (if available)
 ```jinja
@@ -72,14 +112,11 @@ To list the prices of the most expesive 5 hour time block
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=5, lowest=false, mode='list') }}
 ```
 
-To find the end datetime of a 4 hour time block where the 3rd hour has been given a weight of 5
-```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=4, lowest=false, mode='end', top_hour=3, hour_weight=5) }}
-```
+### Advanced examples
 
-To find a 2 hour time block where the sensor uses the key `banana` for the show the dateime, and `apple` to show the energy price
+For a device shows a higher power usage in the first hour, and last half hour
 ```jinja
-{{ cheapest_energy_hours('sensor.fruity_energy_prices', time_key='banana', value_key='apple', hours=2) }}
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5] }}
 ```
 
 # Thanks to
