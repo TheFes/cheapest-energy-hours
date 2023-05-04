@@ -76,21 +76,28 @@ template:
         state: OK
         attributes:
           energy_plots: >
-            {% set d = trigger.event.data.description %}
-            {% set s = trigger.event.data.state %}
+            {% set d = trigger.event.get('data', {}).get('description', 'unknown') %}
+            {% set s = trigger.event.get('data', {}).get('state', 0) %}
             {% set c = this.attributes.get('energy_plots', {}) %}
-            {% if trigger.event.data.status == 'first' %}
-              {% set p = {d: dict(data=[], complete=false, state=s)} %}
-            {% elif trigger.event.data.status == 'complete' %}
-              {% set data = c.get(d, {}).get('data', []) %}
-              {% set p = {d: dict(data=data, complete=true)} %}
+            {% set st = trigger.event.get('data', {}).get('status', 'unknown') %}
+            {% if st == 'remove' %}
+              {{ dict(c.items() | rejectattr('0', 'eq', d)) }}
             {% else %}
-              {% set data = c.get(d, {}).get('data', []) %}
-              {% set u = s - c[d].state %}
-              {% set data = data + [u | round(3)] %}
-              {% set p = {d: dict(data=data, complete=false, state=s)} %}
+              {% if st == 'first' %}
+                {% set p = {d: dict(data=[], complete=false, state=s)} %}
+              {% elif st == 'complete' %}
+                {% set data = c.get(d, {}).get('data', []) %}
+                {% set p = {d: dict(data=data, complete=true)} %}
+              {% elif st == 'ongoing' %}
+                {% set data = c.get(d, {}).get('data', []) %}
+                {% set u = s - c[d].state %}
+                {% set data = data + [u | round(3)] %}
+                {% set p = {d: dict(data=data, complete=false, state=s)} %}
+              {% else %}
+                {% set p = {} %}
+              {% endif %}
+              {{ dict(c, **p) }}
             {% endif %}
-            {{ dict(c, **p) }}
 
 ## AUTOMATION TO START THE SCRIPT ##
 automation:
