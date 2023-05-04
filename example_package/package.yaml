@@ -87,7 +87,7 @@ template:
             {% else %}
               {% set data = c.get(d, {}).get('data', []) %}
               {% set u = s - c[d].state %}
-              {% set data = data + [u] %}
+              {% set data = data + [u | round(3)] %}
               {% set p = {d: dict(data=data, complete=false, state=s)} %}
             {% endif %}
             {{ dict(c, **p) }}
