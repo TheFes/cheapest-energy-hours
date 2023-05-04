@@ -5,11 +5,12 @@
         {%- set m = mode | default('start') -%}
         {%- set h = hours | default(1) | int(1) -%}
         {%- set wp = no_weight_points | default(1) | int(1) -%}
-        {%- set w = weight | default(none) | map('int', none) | reject('none') | list 
-                    if weight is iterable and weight is not string 
-                    else none 
+        {%- set w = weight | default(none) -%}
+        {%- set w = w | map('int', none) | reject('none') | list
+                    if w is iterable and w is not string
+                    else none
         -%}
-        {%- set w = w + [0] * (h*wp - w | count) if w else none %}
+        {%- set w = w + [0] * (h*wp - w | count) if w else none -%}
     {# Check if data is available and mode is correct#}
         {%- if not today and not tomorrow -%}
             No valid data in selected sensor
@@ -58,15 +59,15 @@
                             {%- set list = values[ix:ix+h*wp] | map(attribute=vk) | list  -%}
                             {# calculate weighted average #}
                                 {%- if w is not none -%}
-                                  {%- set wa = namespace(sum=0,divide=0) -%}
-                                  {%- for i in list -%}
-                                    {%- set wa.sum = wa.sum + i * w[loop.index0] -%}
-                                    {%- set wa.divide = wa.divide + w[loop.index0] -%}
-                                  {%- endfor -%}
-                                  {%- set a = wa.sum / wa.divide -%}
-                                {%- else -%}
-                                  {%- set a = list / h -%}
-                                {%- endif -%}
+                                    {%- set wa = namespace(sum=0,divide=0) -%}
+                                    {%- for i in list -%}
+                                        {%- set wa.sum = wa.sum + i * w[loop.index0] -%}
+                                        {%- set wa.divide = wa.divide + w[loop.index0] -%}
+                                    {%- endfor -%}
+                                        {%- set a = wa.sum / wa.divide -%}
+                                    {%- else -%}
+                                        {%- set a = list | sum / h -%}
+                                    {%- endif -%}
                             {%- set b = ns.weighted_average -%}
                             {%- set min = list | min  -%}
                             {%- set max = list | max  -%}
@@ -83,10 +84,10 @@
                         {# output date based on the selected mode#}
                             {%- if m in [ 'start', 'end'] -%}
                                 {%- if time_format is defined -%}
-                                  {%- set format = dict(time12='%I:%M %p', time24='%H:%M') -%}
-                                  {{- ns[m].strftime(format[time_format] | default(time_format)) -}}
+                                    {%- set format = dict(time12='%I:%M %p', time24='%H:%M') -%}
+                                    {{- ns[m].strftime(format[time_format] | default(time_format)) -}}
                                 {%- else -%}
-                                  {{- ns[m].isoformat() -}}
+                                    {{- ns[m].isoformat() -}}
                                 {%- endif -%}
                             {%- else -%}
                                 {{- ns[m] | round(5) if ns[m] | is_number else ns[m] -}}
