@@ -5,14 +5,16 @@
         {%- set m = mode | default('start') -%}
         {%- set h = hours | default(1) | int(1) -%}
         {%- set wp = no_weight_points | default(1) | int(1) -%}
-        {%- set w = weight | default(none) | map('int', none) | list -%}
+        {%- set w = weight | default(none) | map('int', none) | reject('none') | list 
+                    if weight is iterable and weight is not string 
+                    else none 
+        -%}
+        {%- set w = w + [0] * (h*wp - w | count) if w else none %}
     {# Check if data is available and mode is correct#}
         {%- if not today and not tomorrow -%}
             No valid data in selected sensor
         {%- elif m not in ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average'] -%}
             Invalid mode selected
-        {%- elif w is not none w | select('is_number') | list | count != h * wp -%}
-            Provided weight does not match number or weight points per hour
         {%- else -%}
             {# Set defaults for variables which are not provided #}
                     {%- set tk, vk = time_key | default('start'), value_key | default('value') -%}
@@ -26,8 +28,6 @@
                     {%- set s = n if la and s < n else s -%}
                     {%- set e = (today_at(end) if end is defined else today_at() + timedelta(days=1)) + timedelta(days=1 if it else 0) -%}
                     {%- set e = e + timedelta(days=1) if not itd and end is defined else e -%}
-                    {%- set th = top_hour | default(1) | int -%}
-                    {%- set hw = hour_weight | default(2) if top_hour is defined else 1 -%}
                 {# Check if the dateteime in the sensor is a string, and convert start and end if needed #}
                     {%- set str = today[0][tk] is string -%}
                     {%- set s, e = s.isoformat() if str else s, e.isoformat() if str else e -%}
