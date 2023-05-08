@@ -56,7 +56,10 @@ Other optional fields are listed below:
 It could be that your device doesn't have a stable consumption during the period it is on. A washing machine for example will use most power at the start of the program to heat up the water, and at the end, for the spinning to get the water out again.
 To take this into account, you can provide a `weight` list which will be used to find the optimal period to turn your device on. You can even break down the hours into smaller parts, so the result could be that the device should be turned on at eg 11:45.
 To break down into smaller time fractions, you can provide a number in the `no_weight_points` setting. So to break it down into parts of 15 minutes, you need to provide `4` for this setting (4 weight points per hour).
-The list in the `weight` setting, should have the same number of items as the `hours` multiplied with the `no_weight_points`. If a list is provided, but it is has a lower amount of items then expected, it is assumed that the device is not active for the full amount of hours, and a weight of `0` is added for the missing items.
+
+The number or hours will be calculated based on `weight` and `no_weight_points`. So eg if there are 4 weight points per hour, and the `weight` list has 8 items, `hours` will be set to `2` (8/4). This value will be rounded up, and zeros will be added to the `weight` list to make sure the number of items in the list matches the expected number. 
+
+In case `hours` is provided, this will overrule the calculated number of hours, if there are more items in the `weight` list based on the provided number of hours, these will be removed from the list, and not taken into account.
 
 |name|type|default|example|description|
 |---|---|---|---|---|
@@ -68,7 +71,6 @@ You can start the script manually, or automate it. The data will be stored in a 
 It will survive reboots, so you can refer to the data directly in the template for the macro, but if you store a lot of data it will be ommited from saving in your database automatically. So it might be better to store the list in another entity (an input_text for example) or just copy it in use it directly in the macro.
 
 You can find the script, sensor and an automation example [here](./example_package/package.yaml)
-
 
 ### Basic examples
 
