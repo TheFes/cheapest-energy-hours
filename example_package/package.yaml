@@ -48,21 +48,45 @@ script:
         selector:
           text:
     sequence:
+      - variables:
+          not_defined: >
+              {{ [
+                    'energy sensor' if sensor is not defined or not sensor else none,
+                    'stop entity' if stop_entity is not defined or not stop_entity else none,
+                    'stop state' if stop_state is not defined else none
+                  ] | reject('none') | list
+              }}
+      - if: "{{ not_defined | count > 0 }}"
+        then:
+          - stop: >
+              {{ not_defined | join(', ') }} {{ 'is' if not_defined | count == 1 else 'are'}} not defined, script has stopped
+            error: true
+      - variables:
+          description: "{{ description | default('unknown') }}"
+          no_weight_points: "{{ no_weight_points | default(4) | int(4) }}"
       - repeat:
           until:
             - condition: template
               value_template: "{{ is_state(stop_entity, stop_state) }}"
           sequence:
+            - variables:
+                sensor_state: "{{ states(sensor) | float('na') }}"
+            - if: "{{ not sensor_state | is_number }}"
+              then:
+                - stop: "Received non numeric state, script has stopped"
+                  error: true
             - event: update_energy_plot
               event_data:
                 description: "{{ description }}"
                 status: "{{ 'first' if repeat.first else 'ongoing' }}"
-                state: "{{ states(sensor) | float('na') }}"
+                state: "{{ sensor_state }}"
+                no_weight_points: "{{ no_weight_points }}"
             - delay:
-                minutes: "{{ 60 / no_weight_points | int }}"
+                minutes: "{{ 60 / no_weight_points }}"
       - event: update_energy_plot
         event_data:
           description: "{{ description }}"
+          no_weight_points: "{{ no_weight_points }}"
           status: complete
 
 ## TEMPLATE SENSOR TO STORE THE DATA ##
@@ -81,19 +105,23 @@ template:
               {%- set d = trigger.event.data.description | default('unknown') -%}
               {%- set s = trigger.event.data.state | default(0) -%}
               {%- set st = trigger.event.data.status | default('unknown') -%}
+              {%- set wp = trigger.event.data.no_weight_points | default(none) %}
               {%- if st == 'remove' -%}
                 {{ dict(c.items() | rejectattr('0', 'eq', d)) }}
               {%- else -%}
                 {%- if st == 'first' -%}
-                  {%- set p = {d: dict(data=[], complete=false, state=s)} -%}
+                  {%- set p = {d: dict(data=[], state=s, no_weight_points=wp, complete=false)} -%}
                 {%- elif st == 'complete' -%}
                   {%- set data = c.get(d, {}).get('data', []) -%}
-                  {%- set p = {d: dict(data=data, complete=true)} -%}
+                  {%- set no_zero = data | select() | list -%}
+                  {%- set factor = 1 / no_zero | min if no_zero else 0 -%}
+                  {%- set data = data | map('multiply', factor) | map('round', 3) | list -%}
+                  {%- set p = {d: dict(data=data, no_weight_points=wp, complete=true)} -%}
                 {%- elif st == 'ongoing' -%}
                   {%- set data = c.get(d, {}).get('data', []) -%}
-                  {%- set u = s - c[d].state -%}
+                  {%- set u = s - c.get(d, {}).get('state', 0) -%}
                   {%- set data = data + [u | round(3)] -%}
-                  {%- set p = {d: dict(data=data, complete=false, state=s)} -%}
+                  {%- set p = {d: dict(data=data, state=s, no_weight_points=wp, complete=false)} -%}
                 {%- else -%}
                   {%- set p = {} -%}
                 {%- endif -%}

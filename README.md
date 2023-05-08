@@ -1,5 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 ![Version](https://img.shields.io/github/v/release/TheFes/cheapest-energy-hours)
+[![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
 
 # Cheapest Energy Hours
 
@@ -70,7 +71,7 @@ To help getting the weight data from your device, I created a script and a templ
 You can start the script manually, or automate it. The data will be stored in a template sensor called `sensor.energy_plots`.
 It will survive reboots, so you can refer to the data directly in the template for the macro, but if you store a lot of data it will be ommited from saving in your database automatically. So it might be better to store the list in another entity (an input_text for example) or just copy it in use it directly in the macro.
 
-You can find the script, sensor and an automation example [here](./example_package/package.yaml)
+More information on how to use the script and template sensor can be found [here](./example_package/README.md)
 
 ### Basic examples
 
@@ -116,9 +117,9 @@ To list the prices of the most expesive 5 hour time block
 
 ### Advanced examples
 
-For a device shows a higher power usage in the first hour, and last half hour
+For a device shows a higher power usage in the first hour, and last half hour. Based on the number of weight points the `hours` will be set to 3 automatically.
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5] }}
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5] }}
 ```
 
 # Thanks to
