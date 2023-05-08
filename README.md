@@ -40,8 +40,8 @@ Other optional fields are listed below:
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`hours`|integer|`1`|`3`|The number of consecutive hours|
-|`start`|string|"00:00"|"19:00"|Start time to take into consideration for the value selection|
-|`end`|string|`none`|"23:00"|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow|
+|`start`|string|`"00:00"`|`"19:00"`|Start time to take into consideration for the value selection|
+|`end`|string|`none`|`"23:00"`|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow|
 |`include_today`|boolean|`true`|`false`|Boolean to select if todays values should be included|
 |`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
 
@@ -51,7 +51,7 @@ Other optional fields are listed below:
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_average` (the average price taking into account the weight for the `top_hour`)|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
-|`time_format`|string|`none`|time24|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
+|`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 
 ### Advanced data selection settings
 It could be that your device doesn't have a stable consumption during the period it is on. A washing machine for example will use most power at the start of the program to heat up the water, and at the end, for the spinning to get the water out again.
