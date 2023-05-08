@@ -1,0 +1,40 @@
+template:
+  - trigger:
+      - platform: event
+        event_type: update_energy_plot
+    sensor:
+      - unique_id: 36c9491c-2e16-4fc3-bc9f-a6ada5fc88b7
+        name: Energy plots
+        state: OK
+        attributes:
+          energy_plots: >
+            {%- set c = this.attributes.get('energy_plots', {}) -%}
+            {%- if trigger.event.data is defined -%}
+              {%- set d = trigger.event.data.description | default('unknown') -%}
+              {%- set s = trigger.event.data.state | default(0) -%}
+              {%- set st = trigger.event.data.status | default('unknown') -%}
+              {%- set wp = trigger.event.data.no_weight_points | default(none) %}
+              {%- if st == 'remove' -%}
+                {{ dict(c.items() | rejectattr('0', 'eq', d)) }}
+              {%- else -%}
+                {%- if st == 'first' -%}
+                  {%- set p = {d: dict(data=[], state=s, no_weight_points=wp, complete=false)} -%}
+                {%- elif st == 'complete' -%}
+                  {%- set data = c.get(d, {}).get('data', []) -%}
+                  {%- set no_zero = data | select() | list -%}
+                  {%- set factor = 1 / no_zero | min if no_zero else 0 -%}
+                  {%- set data = data | map('multiply', factor) | map('round', 3) | list -%}
+                  {%- set p = {d: dict(data=data, no_weight_points=wp, complete=true)} -%}
+                {%- elif st == 'ongoing' -%}
+                  {%- set data = c.get(d, {}).get('data', []) -%}
+                  {%- set u = s - c.get(d, {}).get('state', 0) -%}
+                  {%- set data = data + [u | round(3)] -%}
+                  {%- set p = {d: dict(data=data, state=s, no_weight_points=wp, complete=false)} -%}
+                {%- else -%}
+                  {%- set p = {} -%}
+                {%- endif -%}
+                {{ dict(c, **p) }}
+              {%- endif -%}
+            {%- else -%}
+              {{ c }}
+            {%- endif -%}

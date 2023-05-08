@@ -1,0 +1,88 @@
+plot_energy_usage:
+  alias: "00 - Plot energy usage"
+  icon: mdi:brightness-percent
+  mode: parallel
+  max: 20
+  max_exceeded: silent
+  fields:
+    sensor:
+      description: "Select energy sensor"
+      name: Energy Sensor
+      example: sensor.dishwasher_energy
+      required: true
+      selector:
+        entity:
+          domain: sensor
+          device_class: energy
+    description:
+      description: "Description for the plot"
+      name: Description
+      example: 120
+      required: true
+      selector:
+        text:
+    no_weight_points:
+      description: "Number of weight points/hour"
+      name: Weight points
+      default: 1
+      example: 3
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 12
+          step: 1
+          mode: slider
+    stop_entity:
+      description: "Entity to use to stop the plot"
+      example: input_boolean.dishwasher_off
+      required: true
+      selector:
+        entity:
+    stop_state:
+      description: "State the entity should have to stop the plot"
+      example: "off"
+      required: true
+      selector:
+        text:
+  sequence:
+    - variables:
+        not_defined: >
+            {{ [
+                  'energy sensor' if sensor is not defined or not sensor else none,
+                  'stop entity' if stop_entity is not defined or not stop_entity else none,
+                  'stop state' if stop_state is not defined else none
+                ] | reject('none') | list
+            }}
+    - if: "{{ not_defined | count > 0 }}"
+      then:
+        - stop: >
+            {{ not_defined | join(', ') }} {{ 'is' if not_defined | count == 1 else 'are'}} not defined, script has stopped
+          error: true
+    - variables:
+        description: "{{ description | default('unknown') }}"
+        no_weight_points: "{{ no_weight_points | default(4) | int(4) }}"
+    - repeat:
+        until:
+          - condition: template
+            value_template: "{{ is_state(stop_entity, stop_state) }}"
+        sequence:
+          - variables:
+              sensor_state: "{{ states(sensor) | float('na') }}"
+          - if: "{{ not sensor_state | is_number }}"
+            then:
+              - stop: "Received non numeric state, script has stopped"
+                error: true
+          - event: update_energy_plot
+            event_data:
+              description: "{{ description }}"
+              status: "{{ 'first' if repeat.first else 'ongoing' }}"
+              state: "{{ sensor_state }}"
+              no_weight_points: "{{ no_weight_points }}"
+          - delay:
+              minutes: "{{ 60 / no_weight_points }}"
+    - event: update_energy_plot
+      event_data:
+        description: "{{ description }}"
+        no_weight_points: "{{ no_weight_points }}"
+        status: complete
