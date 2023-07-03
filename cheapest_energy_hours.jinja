@@ -1,6 +1,6 @@
-{%- macro cheapest_energy_hours(sensor, hours, start, end, time_key, value_key, include_today, include_tomorrow, lowest, mode, look_ahead, time_format, no_weight_points, weight) -%}
+{%- macro cheapest_energy_hours(sensor, hours, start, end, attr, time_key, value_key, include_today, include_tomorrow, lowest, mode, look_ahead, time_format, no_weight_points, weight) -%}
     {# Get data out of the selected entity #}
-        {%- set today = state_attr(sensor, 'raw_today') -%}
+        {%- set today = state_attr(sensor, attr | default('raw_today')) -%}
         {%- set tomorrow = state_attr(sensor, 'raw_tomorrow') -%}
         {%- set m = mode | default('start') -%}
         {%- set wp = no_weight_points | default(1) | int(1) -%}

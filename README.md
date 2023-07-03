@@ -32,6 +32,7 @@ Other optional fields are listed below:
 ### Source sensor settings
 |name|type|default|example|description|
 |---|---|---|---|---|
+|`attr`|string|`raw_today`|`price_data`|The attribute which has the datetimes and prices used by the macro, defaults to `raw_today`|
 |`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 
