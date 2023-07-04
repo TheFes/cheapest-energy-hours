@@ -50,7 +50,7 @@ Other optional fields are listed below:
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
-|`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_average` (the average price taking into account the weight for the `top_hour`)|
+|`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found),`time_min` (time of lowest price in hours found),`time_max` (time of highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_average` (the average price taking into account the weight for the `top_hour`)|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
 |`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 
