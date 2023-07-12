@@ -121,7 +121,7 @@ To list the prices of the most expesive 5 hour time block
 
 For a device shows a higher power usage in the first hour, and last half hour. Based on the number of weight points the `hours` will be set to 3 automatically.
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5] }}
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5]) }}
 ```
 
 # Thanks to
