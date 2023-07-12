@@ -17,7 +17,7 @@ plot_energy_usage:
     description:
       description: "Description for the plot"
       name: Description
-      example: 120
+      example: "Dishwasher ECO Silent"
       required: true
       selector:
         text:
