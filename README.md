@@ -67,7 +67,8 @@ In case `hours` is provided, this will overrule the calculated number of hours, 
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`no_weight_points`|integer|`1`|`4`|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
-|`weight`|list|`none`|`[25, 1, 4, 0]`|The list with weight factors to be used for the calculation| 
+|`weight`|list|`none`|`[25, 1, 4, 0]`|The list with weight factors to be used for the calculation|
+|`program`|string|none|`'Dryer Clothes'`| Description of data used in the energy plot sensor. Adds automatically the correct weight and number of weight points. 
 
 To help getting the weight data from your device, I created a script and a template sensor which stores the data. The script requires a energy sensor for the device you want to track, and some entity to determine when to stop plotting the data (this can be an input_boolean, or the state of the device iteself)
 You can start the script manually, or automate it. The data will be stored in a template sensor called `sensor.energy_plots`.

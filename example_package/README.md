@@ -49,6 +49,10 @@ As long as the data is still in the sensor, you can directly refer to it.
 {% set wp = state_attr('sensor.energy_plots', 'energy_plots')['Your Description'].no_weight_points %}
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=wp, weight=w }}
 ```
+Or you can use the `program` function in the macro to set the `weight` and `no_weight_points` automatically from the description of the energy_plot sensor.
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', program=`Your Description` }}
+```
 
 If you store the data in an input_text, or otherwise in a string instead of a list, you need to apply `| from_json` to convert it to a list again
 ```jinja
