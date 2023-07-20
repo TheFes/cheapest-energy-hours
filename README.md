@@ -32,7 +32,8 @@ Other optional fields are listed below:
 ### Source sensor settings
 |name|type|default|example|description|
 |---|---|---|---|---|
-|`attr`|string|`raw_today`|`price_data`|The attribute which has the datetimes and prices used by the macro, defaults to `raw_today`|
+|`attr_today`|string|`raw_today`|`prices_today`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_today`|
+|`attr_tomorrow`|string|`raw_tomorrow`|`prices_tomorrow`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_tomorrow`|
 |`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 
@@ -121,7 +122,7 @@ To list the prices of the most expesive 5 hour time block
 
 For a device shows a higher power usage in the first hour, and last half hour. Based on the number of weight points the `hours` will be set to 3 automatically.
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5] }}
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5]) }}
 ```
 
 # Thanks to
