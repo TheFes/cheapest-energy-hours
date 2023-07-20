@@ -32,8 +32,8 @@ Other optional fields are listed below:
 ### Source sensor settings
 |name|type|default|example|description|
 |---|---|---|---|---|
-|`attr_today`|string|`raw_today`|`prices_today`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_today`|
-|`attr_tomorrow`|string|`raw_tomorrow`|`prices_tomorrow`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_tomorrow`|
+|`attr_today`|string|`"raw_today"`|`"prices_today"`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_today`|
+|`attr_tomorrow`|string|`"raw_tomorrow"`|`"prices_tomorrow"`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_tomorrow`|
 |`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 
@@ -68,7 +68,7 @@ In case `hours` is provided, this will overrule the calculated number of hours, 
 |---|---|---|---|---|
 |`no_weight_points`|integer|`1`|`4`|The most important hour in your hour range. Eg if hour device uses most energy in the 2nd hour, you can set this to `2` to give more weight to that energy price|
 |`weight`|list|`none`|`[25, 1, 4, 0]`|The list with weight factors to be used for the calculation|
-|`program`|string|none|`'Dryer Clothes'`| Description of data used in the energy plot sensor. Adds automatically the correct weight and number of weight points. 
+|`program`|string|none|`"Dryer Clothes"`| Description of data used in the energy plot sensor. Adds automatically the correct weight and number of weight points. 
 
 To help getting the weight data from your device, I created a script and a template sensor which stores the data. The script requires a energy sensor for the device you want to track, and some entity to determine when to stop plotting the data (this can be an input_boolean, or the state of the device iteself)
 You can start the script manually, or automate it. The data will be stored in a template sensor called `sensor.energy_plots`.
@@ -80,51 +80,51 @@ More information on how to use the script and template sensor can be found [here
 
 You always need to import the macro, so the first line should always be:
 ```jinja
-{% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
+{% from "cheapest_energy_hours.jinja" import cheapest_energy_hours %}
 ```
 
 To get the start datetime of an a 3 hour time block when the energy price is lowest, only taking account the data of today
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3) }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=3) }}
 ```
 
 To find a 2 hour time block where the sensor uses the key `banana` for the show the dateime, and `apple` to show the energy price
 ```jinja
-{{ cheapest_energy_hours('sensor.fruity_energy_prices', time_key='banana', value_key='apple', hours=2) }}
+{{ cheapest_energy_hours("sensor.fruity_energy_prices", time_key="banana", value_key="apple", hours=2) }}
 ```
 
 To only show the time in 24 hour format, and not the entire datetime string
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, time_format='time24') }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=3, time_format="time24") }}
 ```
 
 To also include seconds for the time, and do not take the hours in the past into account
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, time_format='%H:%M:%S', look_ahead=true) }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=3, time_format="%H:%M:%S", look_ahead=true) }}
 ```
 
 To include also the prices of tomorrow (if available)
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, include_tomorrow=true) }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=3, include_tomorrow=true) }}
 ```
 
 To show the average price in the 3 hour period:
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=3, mode='average') }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=3, mode="average") }}
 ```
 
 To list the prices of the most expesive 5 hour time block
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', hours=5, lowest=false, mode='list') }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=5, lowest=false, mode="list") }}
 ```
 
 ### Advanced examples
 
 For a device shows a higher power usage in the first hour, and last half hour. Based on the number of weight points the `hours` will be set to 3 automatically.
 ```jinja
-{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur', no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5]) }}
+{{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5]) }}
 ```
 
 # Thanks to
-* [@basbruss](https://github.com/basbruss) for providing the output mode 
+* [@basbruss](https://github.com/basbruss) for providing the output mode and a lot of other additions!
 
