@@ -1,4 +1,4 @@
-{%- macro cheapest_energy_hours(sensor, hours, start, end, attr, time_key, value_key, include_today, include_tomorrow, lowest, mode, look_ahead, time_format, no_weight_points, weight) -%}
+{%- macro cheapest_energy_hours(sensor, hours, start, end, attr, time_key, value_key, include_today, include_tomorrow, lowest, mode, look_ahead, time_format, no_weight_points, weight, program) -%}
     {# Get data out of the selected entity #}
         {%- set today = state_attr(sensor, attr | default('raw_today')) -%}
         {%- set tomorrow = state_attr(sensor, 'raw_tomorrow') -%}
@@ -6,10 +6,15 @@
         {%- set wp = no_weight_points | default(1) | int(1) -%}
         {%- set h = hours | default(1) | int(1) -%}
         {%- set w = weight | default(none) -%}
+        {%-set p = program | default(none) -%}
+        {%-if p is not none-%}
+            {% set w = state_attr('sensor.energy_plots', 'energy_plots')[p].data %}
+            {% set wp = state_attr('sensor.energy_plots', 'energy_plots')[p].no_weight_points %}
+        {%- endif -%}
         {%- set w = w | map('int', none) | reject('none') | list
                     if w is iterable and w is not string
                     else none
-        -%}
+        -%}    
     {# set number of hours based on weight points in case hours setting is not provided #}
         {%- set h_wp = (w | count / wp) | round(0, 'ceil') | int if w is not none else h -%}
         {%- set h = h if hours is defined else h_wp -%}
