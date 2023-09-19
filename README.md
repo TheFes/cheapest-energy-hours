@@ -51,10 +51,52 @@ Other optional fields are listed below:
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
-|`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found),`time_min` (time of lowest price in hours found),`time_max` (time of highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_average` (the average price taking into account the weight for the `top_hour`)|
+|`mode`|string|`"start"`|`"average"`|You can choose what to output, these values are accepted: `min` (lowest price in hours found), `max` (highest price in hours found),`time_min` (time of lowest price in hours found),`time_max` (time of highest price in hours found), `average` (average price in hours found), `start` (start of the hours found), `end` (end of the hours found), `list` (list with the prices in hours found), `weighted_average` (the average price taking into account the weight for the `top_hour`), `split` (see seperate section on this mode)|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
 |`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 |`value_on_error`|any|error description|`as_datetime('2099-12-31)`|You can optionally provide a value to be outputted in case there is an error. This can be useful if you eg want it to use as state in a template sensor which has `dive_class: timestamp` which will run in error if the state value is not as expected. Or if you output the data on your dashboard in a markup card and don't want to provide your own message.
+
+### Mode split ###
+This specific output mode will return a json string with the consecutive time blocks in which the prices are lowest for the selected hours (within the selected `start` and `end`). This can be convenient if you eg want to charge your car for, and you know this is going to take 6 hours, and you only want to charge it during the 6 cheapest hours.
+It will also return the number of hours in each time block, and the prices in that block.
+This mode will not work with weights and programs, it will only look a the hours within your selection.
+
+Example
+```jinja
+{{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur_3_10_021', hours=6, mode='split', look_ahead=true, include_tomorrow=true, end='14:00') }}
+```
+Example output:
+```json
+[
+  {
+    "start": "2023-09-19T15:00:00+02:00",
+    "end": "2023-09-19T16:00:00+02:00",
+    "hours": 1,
+    "prices": [
+      -0.004
+    ]
+  },
+  {
+    "start": "2023-09-20T02:00:00+02:00",
+    "end": "2023-09-20T03:00:00+02:00",
+    "hours": 3,
+    "prices": [
+      -0.002,
+      -0.004,
+      -0.003
+    ]
+  },
+  {
+    "start": "2023-09-20T12:00:00+02:00",
+    "end": "2023-09-20T14:00:00+02:00",
+    "hours": 2,
+    "prices": [
+      -0.004,
+      -0.006
+    ]
+  }
+]
+```
 
 ### Advanced data selection settings
 It could be that your device doesn't have a stable consumption during the period it is on. A washing machine for example will use most power at the start of the program to heat up the water, and at the end, for the spinning to get the water out again.
