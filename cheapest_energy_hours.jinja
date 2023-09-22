@@ -63,25 +63,27 @@
                 -%}
             {# Check if there is data, and find the right hour block #}
                 {%- if values | count >= h -%}
-                    {%- if mode == 'split' -%}
+                    {%- if m == 'split' -%}
                         {# sort values and take out hours needed#}
                             {%- set values = (values | sort(attribute=vk))[:h] | sort(attribute=tk) -%}
                             {%- set ns = namespace(split=[], start=none, prices=[], hours=0) -%}
                             {%- for i in range(h) -%}
+                              {%- set dt = values[loop.index0][tk] -%}
+                              {%- set dt = as_datetime(dt) if str else dt -%}
                               {%- if i == 0 -%}
-                                  {%- set ns.start = values[0][tk] -%}
+                                  {%- set ns.start = dt -%}
                                   {%- set ns.hours = 1 -%}
                                   {%- set ns.prices = [values[0][vk]] -%}
-                              {%- elif values[loop.index0 - 1][tk] != values[loop.index0][tk] - timedelta(hours=1) -%}
+                              {%- elif values[loop.index0 - 1][tk] != dt - timedelta(hours=1) -%}
                                   {%- set ns.split = ns.split + [dict(start=ns.start.isoformat(), end=(ns.start + timedelta(hours=1)).isoformat(), hours=ns.hours, prices=ns.prices)] -%}
-                                  {%- set ns.start = values[loop.index0][tk] -%}
+                                  {%- set ns.start = dt -%}
                                   {%- set ns.hours = 1 -%}
                                   {%- set ns.prices = [values[loop.index0][vk]] -%}
                               {%- else -%}
                                   {%- set ns.hours = ns.hours + 1 -%}
                                   {%- set ns.prices = ns.prices + [values[loop.index0][vk]] -%}
                                   {%- if loop.last -%}
-                                      {%- set ns.split = ns.split + [dict(start=ns.start.isoformat(), end=(values[loop.index0][tk] + timedelta(hours=1)).isoformat(), hours=ns.hours, prices=ns.prices)] -%}
+                                      {%- set ns.split = ns.split + [dict(start=ns.start.isoformat(), end=(dt + timedelta(hours=1)).isoformat(), hours=ns.hours, prices=ns.prices)] -%}
                                   {%- endif -%}
                               {%- endif -%}
                             {%- endfor -%}
