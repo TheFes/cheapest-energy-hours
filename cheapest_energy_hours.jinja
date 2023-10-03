@@ -1,4 +1,5 @@
 {%- macro cheapest_energy_hours(sensor, hours, start, end, attr_today, attr_tomorrow, time_key, value_key, include_today, include_tomorrow, lowest, mode, look_ahead, time_format, no_weight_points, weight, program, value_on_error) -%}
+    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] %}
     {# Get data out of the selected entity #}
         {%- set today = state_attr(sensor, attr_today | default('raw_today')) -%}
         {%- set tomorrow = state_attr(sensor, attr_tomorrow | default('raw_tomorrow')) -%}
@@ -8,6 +9,7 @@
         {%- set p = program | default(none) -%}
         {%- set m = mode | default('start') -%}
         {%- set use_voe = value_on_error is defined -%}
+        {%- set tk, vk = time_key | default('start'), value_key | default('value') -%}
         {%-if p is not none-%}
             {%- set w = state_attr('sensor.energy_plots', 'energy_plots').get(p, {}).get('data') | default(none, true) -%}
             {%- set wp = state_attr('sensor.energy_plots', 'energy_plots').get(p, {}).get('no_weight_points', 1) -%}
@@ -28,18 +30,21 @@
                 {%- set w = w[:h*wp] -%}
             {%- endif -%}
         {%- endif -%}
-    {# Check if data is available and mode is correct#}
-        {%- if not today and not tomorrow -%}
-            {{- value_on_error if use_voe else 'No valid data in selected sensor' -}}
-        {%- elif m not in ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] -%}
-            {{- value_on_error if use_voe else 'Invalid mode selected' -}}
-        {%- elif p is not none and w is none -%}
-            {{- value_on_error if use_voe else 'Selected program is not available or has no data' -}}
-        {%- elif p is not none and not c -%}
-            {{- value_on_error if use_voe else 'Data plot for selected program not complete' -}}
+    {# Return error messages for input #}
+        {%- set errors = [
+                           'No valid data in selected sensor' if not today and not tomorrow,
+                           'Time key not found in data' if today is not none and tk not in today[0],
+                           'Value key not found in data' if today is not none and vk not in today[0],
+                           'Invalid mode selected' if m not in modes,
+                           'Selected program is not available or has no data' if p is not none and w is none,
+                           'Data plot for selected program not complete' if p is not none and w is not none and not c
+                        ] | select() | list
+        -%}
+        {%- if errors | count > 0 -%}
+            {{- value_on_error if use_voe else '{} error{}: {}'.format(errors | count, 's' if errors | count > 1, errors | join(', ')) -}}
+        {# no error - continue with macro #}
         {%- else -%}
             {# Set defaults for variables which are not provided #}
-                {%- set tk, vk = time_key | default('start'), value_key | default('value') -%}
                 {%- set l = lowest | default(true) | bool(true) -%}
                 {%- set itd = include_today | default(true) | bool(true) -%}
                 {%- set it = include_tomorrow | default(false) | bool(false) -%}
