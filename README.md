@@ -2,16 +2,29 @@
 ![Version](https://img.shields.io/github/v/release/TheFes/cheapest-energy-hours)
 [![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
 
-# Cheapest Energy Hours
 
 A jinja macro to easily find the cheapest consecutive block of hours to know when to turn on your dryer
 
-## Why this macro
+- [Why this macro](#why-this-macro)
+- [How to install](#how-to-install)
+- [How to use](#how-to-use)
+  - [Source sensor settings](#source-sensor-settings)
+  - [Basic data selection settings](#basic-data-selection-settings)
+  - [Data output settings](#data-output-settings)
+  - [Mode split](#mode-split)
+  - [Advanced data selection settings](#advanced-data-selection-settings)
+  - [Basic examples](#basic-examples)
+  - [Advanced examples](#advanced-examples)
+- [Error handling](#error-handling)
+- [Thanks to](#thanks-to)
+
+
+# Why this macro
 
 If your energy provider uses dynamic pricing, you might want to know when to turn on devices which consume a lot of power. It is relatively easy to find the lowest price on the day, but if it takes 3 hours for your dryer to complete, you might want to find the cheapest block of hours. It could be that the cheapest hour is not even in that block.
 This macro comes to the rescue!
 
-## How to install
+# How to install
 You need to have Home Assistant 2023.4 or higher installed to use custom templates.
 
 This custom template is compatible with [HACS](https://hacs.xyz/), which means that you can easily download and manage updates for it. Custom templates are currently only available in HACS when you enable experimental features. Make sure to enable it in the HACS settings, which you can access from Settings > [Devices & Services](https://my.home-assistant.io/create-link/?redirect=integrations) > HACS When experimental features are enabled you click the button below to add it to your HACS installation,
@@ -23,12 +36,12 @@ Run the `homeassistant.reload_custom_templates` service call to load the file.
 
 
 
-## How to use
+# How to use
 The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide the attributes `raw_today` and `raw_tomorrow` which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
 Other optional fields are listed below:
 
-### Source sensor settings
+## Source sensor settings
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`attr_today`|string|`"raw_today"`|`"prices_today"`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_today`|
@@ -37,7 +50,7 @@ Other optional fields are listed below:
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 
 
-### Basic data selection settings
+## Basic data selection settings
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`hours`|integer|`1`|`3`|The number of consecutive hours|
@@ -46,7 +59,7 @@ Other optional fields are listed below:
 |`include_today`|boolean|`true`|`false`|Boolean to select if todays values should be included|
 |`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
 
-### Data output settings
+## Data output settings
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
@@ -55,7 +68,7 @@ Other optional fields are listed below:
 |`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 |`value_on_error`|any|error description|`as_datetime('2099-12-31)`|You can optionally provide a value to be outputted in case there is an error. This can be useful if you eg want it to use as state in a template sensor which has `device_class: timestamp` which will run in error if the state value is not as expected. Or if you output the data on your dashboard in a markup card and want to provide your own message.
 
-### Mode split ###
+## Mode split ##
 This specific output mode will return a json string with the consecutive time blocks in which the prices are lowest for the selected hours (within the selected `start` and `end`). This can be convenient if you eg want to charge your car for, and you know this is going to take 6 hours, and you only want to charge it during the 6 cheapest hours.
 It will also return the number of hours in each time block, and the prices in that block.
 This mode will not work with weights and programs, it will only look a the hours within your selection.
@@ -97,7 +110,7 @@ Example output:
 ]
 ```
 
-### Advanced data selection settings
+## Advanced data selection settings
 It could be that your device doesn't have a stable consumption during the period it is on. A washing machine for example will use most power at the start of the program to heat up the water, and at the end, for the spinning to get the water out again.
 To take this into account, you can provide a `weight` list which will be used to find the optimal period to turn your device on. You can even break down the hours into smaller parts, so the result could be that the device should be turned on at eg 11:45.
 To break down into smaller time fractions, you can provide a number in the `no_weight_points` setting. So to break it down into parts of 15 minutes, you need to provide `4` for this setting (4 weight points per hour).
@@ -118,7 +131,7 @@ It will survive reboots, so you can refer to the data directly in the template f
 
 More information on how to use the script and template sensor can be found [here](./example_package/README.md)
 
-### Basic examples
+## Basic examples
 
 You always need to import the macro, so the first line should always be:
 ```jinja
@@ -160,12 +173,26 @@ To list the prices of the most expesive 5 hour time block
 {{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", hours=5, lowest=false, mode="list") }}
 ```
 
-### Advanced examples
+## Advanced examples
 
 For a device shows a higher power usage in the first hour, and last half hour. Based on the number of weight points the `hours` will be set to 3 automatically.
 ```jinja
 {{ cheapest_energy_hours("sensor.nordpool_kwh_nl_eur", no_weight_points=2, weight=[2 , 4, 1, 1, 1, 5]) }}
 ```
+
+# Error handling
+
+The macro will display error messages as output in case of incorrect input.
+|Message|What do do|
+|---|---|
+|parameter 'sensor' was not provided|No sensor was provided to get the data from, note that unless you use `sensor=` to name the parameter, you need to start with the sensor as first parameter|
+|No valid data in selected sensor|The provided sensor does not have valid data to work with, the sensor might be unavailable, or you need to provide a specific `attr_today` or `attr_tomorrow`|
+|Time key not found in data|The time key can not be found in the source data, you might need to proviee a `time_key` parameter|
+|Value key not found in data|The value key can not be found in the source data, you might need to provide a `value_key` parameter|
+|Invalid mode selected|An invalid value for the `mode` parameter was provided, check your input|
+|Selected program is not available or has no data|The value provided for the `program` parameter can not be found in the sensor, or has no data|
+|Data plot for selected program not complete|The data plot for the value in the `program` parameter is incomplete|
+|No(t enough) data within current selection|There is no, or not enough data to match your input. This can happen if you eg want a consecutive block of 4 hours, and you only use todays data for future hours, when it's already after 21:00|
 
 # Thanks to
 * [@basbruss](https://github.com/basbruss) for providing the output mode and a lot of other additions!
