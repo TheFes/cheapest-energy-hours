@@ -48,12 +48,12 @@ plot_energy_usage:
   sequence:
     - variables:
         not_defined: >
-            {{ [
-                  'energy sensor' if sensor is not defined or not sensor else none,
-                  'stop entity' if stop_entity is not defined or not stop_entity else none,
-                  'stop state' if stop_state is not defined else none
-                ] | reject('none') | list
-            }}
+          {{ [
+                'energy sensor' if sensor is not defined or not sensor else none,
+                'stop entity' if stop_entity is not defined or not stop_entity else none,
+                'stop state' if stop_state is not defined else none
+              ] | reject('none') | list
+          }}
     - if: "{{ not_defined | count > 0 }}"
       then:
         - stop: >
