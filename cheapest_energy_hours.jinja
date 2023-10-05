@@ -26,9 +26,8 @@
                                     no_weight_points=1,
                                     weight=none,
                                     program=none
-                                )
--%}
-    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] %}
+                                ) -%}
+    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] -%}
     {# Get data out of the selected entity #}
         {%- set today = state_attr(sensor, attr_today) -%}
         {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
@@ -98,8 +97,8 @@
         {%- endif -%}
             {# set variables to check if numbeer of wp/h match dp/h #}
                 {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
-                {%- set check_list = [dp_minutes, wp_minutes] | sort %}
-                {%- set check = check_list[1] % check_list[0] == 0 %}
+                {%- set check_list = [dp_minutes, wp_minutes] | sort -%}
+                {%- set check = check_list[1] % check_list[0] == 0 -%}
             {# Check if there is data, and find the right hour block #}
                 {%- if values | count >= dp and check-%}
                     {%- if mode == 'split' -%}
@@ -125,11 +124,11 @@
                                     {%- endif -%}
                                 {%- endif -%}
                             {%- endfor -%}
-                            {{ split.split | to_json }}
+                            {{- split.split | to_json -}}
                     {%- else -%}
                         {# Change data based on weight input and datpoints per hour if needed #}
                             {%- if wp_minutes != dp_minutes and w is not none -%}
-                                {%- if dp_minutes > wp_minutes %}
+                                {%- if dp_minutes > wp_minutes -%}
                                     {%- set values_adjust = namespace(values=[]) -%}
                                     {%- for v in (values * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
                                         {%- set t = v.time -%}
