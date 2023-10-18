@@ -94,7 +94,6 @@
                                     | selectattr('value', 'is_number')
                                     | list
                 -%}
-        {%- endif -%}
             {# set variables to check if numbeer of wp/h match dp/h #}
                 {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
                 {%- set check_list = [dp_minutes, wp_minutes] | sort -%}
@@ -188,4 +187,5 @@
                     -%}
                     {{- value_on_error if use_voe else error_msg -}}
                 {%- endif -%}
+        {%- endif -%}
 {%- endmacro -%}
