@@ -123,7 +123,9 @@ In case `hours` is provided, this will overrule the calculated number of hours, 
 |---|---|---|---|---|
 |`no_weight_points`|integer|`1`|`4`|The number of weight points per hour, eg set to `4` if each weight point represents 15 minutes. This should match with the datapoints per hour, meaning the number of minutes each list item in the sensor represents (normally 60, for dynamic prices per hour) shoudl be divisable by the number of minutes per weight point. So with hourly data you can use `4` or `12` but not `7`|
 |`weight`|list|`none`|`[25, 1, 4, 0]`|The list with weight factors to be used for the calculation|
-|`program`|string|none|`"Dryer Clothes"`| Description of data used in the energy plot sensor. Adds automatically the correct weight and number of weight points. 
+|`program`|string|none|`"Dryer Clothes"`|Description of data used in the energy plot sensor. Adds automatically the correct weight and number of weight points.|
+|`plot_sensor`|string|`"sensor.energy_plots"`|`"sensor.plot_data"`| The entity_id of the sensor with the energy plots.|
+|`plot_attr`|string|`"energy_plots"`|`"plot_data"`|The attribute in which the enery plots are stored.|
 
 To help getting the weight data from your device, I created a script and a template sensor which stores the data. The script requires a energy sensor for the device you want to track, and some entity to determine when to stop plotting the data (this can be an input_boolean, or the state of the device iteself)
 You can start the script manually, or automate it. The data will be stored in a template sensor called `sensor.energy_plots`.
