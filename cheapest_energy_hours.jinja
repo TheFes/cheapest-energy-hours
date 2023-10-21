@@ -1,4 +1,5 @@
 {%- macro _format_date(datetime, time_format) -%}
+    {%- set datetime = datetime | as_local -%}
     {%- if time_format is not none -%}
         {%- set format = dict(time12='%I:%M %p', time24='%H:%M') -%}
         {{- datetime.strftime(format[time_format] | default(time_format)) -}}
