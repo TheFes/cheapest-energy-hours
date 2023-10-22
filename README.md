@@ -37,15 +37,18 @@ Run the `homeassistant.reload_custom_templates` service call to load the file.
 
 
 # How to use
-The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide the attributes `raw_today` and `raw_tomorrow` which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
+The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide attributes with the prices for today and tomorrow, either in seperate attributes or in a combined one and which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
-Other optional fields are listed below:
+The macro will try to find the right keys for the start datetime and price, if this doesn't work, you can provide it.
+
+Optional parameters are listed below:
 
 ## Source sensor settings
 |name|type|default|example|description|
 |---|---|---|---|---|
 |`attr_today`|string|`"raw_today"`|`"prices_today"`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_today`|
 |`attr_tomorrow`|string|`"raw_tomorrow"`|`"prices_tomorrow"`|The attribute which has the datetimes and prices for today used by the macro, defaults to `raw_tomorrow`|
+|`attr_all`|string|`prices`|`prices_all`|The attribute which contains both the data of today and tomorrow if provided by the sensor, defaults to `prices`|
 |`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
 

@@ -16,6 +16,7 @@
                                     hours,
                                     attr_today='raw_today',
                                     attr_tomorrow='raw_tomorrow',
+                                    attr_all='prices',
                                     time_key='start',
                                     value_key='value',
                                     mode='start',
@@ -32,8 +33,32 @@
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] -%}
     {# Get data out of the selected entity #}
-        {%- set today = state_attr(sensor, attr_today) -%}
-        {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
+        {%- set today = (state_attr(sensor, attr_today) if include_today) | default([], true) -%}
+        {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if include_tomorrow) | default([], true) -%}
+        {%- set data = (today + tomorrow) or state_attr(sensor, attr_all) | default([], true) -%}
+    {# Try to find the right time_key and value_key if provided parameters are not found #}
+        {%- if data[0] | default is mapping -%}
+            {%- if time_key not in data[0] %}
+                {%- set tk_list =
+                        data[0].items()
+                            | rejectattr('1', 'is_number')
+                            | sort(attribute='1')
+                            | selectattr('1', 'contains', now().date()| string)
+                            | map(attribute='0')
+                            | list
+                -%}
+                {%- set time_key = tk_list | first if tk_list else time_key -%}
+            {%- endif -%}
+            {%- if value_key not in data[0] %}
+                {%- set vk_list =
+                        data[0].items()
+                            | selectattr('1', 'is_number')
+                            | map(attribute='0')
+                            | list
+                -%}
+                {%- set value_key = vk_list | first if vk_list else value_key -%}
+            {%- endif -%}
+        {%- endif -%}
         {%- set h = hours | default(1) | float(1) -%}
         {%- set use_voe = value_on_error is defined -%}
     {# set weight points based on energy plot sensor #}
@@ -59,9 +84,9 @@
         {%- endif -%}
     {# Return error messages for input #}
         {%- set errors = [
-                            'No valid data in {}'.format(sensor) if not today and not tomorrow,
-                            'Time key "{}" not found in data'.format(time_key) if today is not none and time_key not in today[0],
-                            'Value key "{}" not found in data'.format(value_key) if today is not none and value_key not in today[0],
+                            'No valid data in {}'.format(sensor) if data == [],
+                            'Time key "{}" not found in data'.format(time_key) if data and time_key not in data[0],
+                            'Value key "{}" not found in data'.format(value_key) if data and value_key not in data[0],
                             'Invalid mode "{}" selected'.format(mode) if mode not in modes,
                             'Boolean input expected for include_today, "{}" can not be processed as a boolean'.format(include_today) if include_today | bool('') is not boolean,
                             'Boolean input expected for include_tomorrow, "{}" can not be processed as a boolean'.format(include_tomorrow) if include_tomorrow | bool('') is not boolean,
@@ -83,7 +108,7 @@
                 {%- set e = e + timedelta(days=1) if not include_today and end is defined else e -%}
             {# Rebuild data from sensor to generic format #}
                 {%- set rebuild = namespace(data=[]) -%}
-                {%- for item in (today if include_today else []) + (tomorrow if include_tomorrow else []) -%}
+                {%- for item in data -%}
                     {%- set time = item[time_key] -%}
                     {%- set time = as_datetime(time) if time is string else time -%}
                     {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key])] -%}
