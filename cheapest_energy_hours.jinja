@@ -83,7 +83,7 @@
                             | list
                 -%}
                 {%- set tk_value = tk_list[0][1] | string if tk_list else '' -%}
-                {%- set td, tm = now().date() | string, (now() + timedelta(days=1)) | string -%}
+                {%- set td, tm = now().date() | string, (now() + timedelta(days=1)).date() | string -%}
                 {%- set tk_valid = tk_value and (td in tk_value or tm in tk_value) -%}
                 {%- set time_key = tk_list[0][0] if tk_valid else time_key -%}
             {%- endif -%}
