@@ -67,6 +67,7 @@ Optional parameters are listed below:
 |---|---|---|---|---|
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|see [seperate section](#output-modes)|
+|`precision`|integer|`5`|`2`|The number of decimals used for the price output|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
 |`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 |`value_on_error`|any|error description|`as_datetime('2099-12-31)`|You can optionally provide a value to be outputted in case there is an error. This can be useful if you eg want it to use as state in a template sensor which has `device_class: timestamp` which will run in error if the state value is not as expected. Or if you output the data on your dashboard in a markup card and want to provide your own message.
