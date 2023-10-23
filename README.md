@@ -97,6 +97,29 @@ A json string with the prices in the selected time period (use `from_json` to co
 #### weighted_average
 The average price taking into account the weight assigned to the different time sections
 
+#### all
+Outputs all the above modes in a json string dictionary. Convert to a actual dictionary using `from_json`. This can be useful if you need more than one output mode for the same selection.
+Exmple output:
+```yaml
+{
+  "start": "2023-10-24T01:00:00+02:00",
+  "end": "2023-10-24T06:00:00+02:00",
+  "min": 0.08946,
+  "max": 0.09721,
+  "time_min": "2023-10-24T03:00:00+02:00",
+  "time_max": "2023-10-24T01:00:00+02:00",
+  "average": 0.09319,
+  "weighted_average": 0.09319,
+  "list": [
+    0.09721,
+    0.09454,
+    0.08946,
+    0.09027,
+    0.09445
+  ]
+}
+```
+
 #### split
 This specific output mode will return a json string with the consecutive time blocks in which the prices are lowest for the selected hours (within the selected `start` and `end`). This can be convenient if you eg want to charge your car for, and you know this is going to take 6 hours, and you only want to charge it during the 6 cheapest hours.
 It will also return the number of hours in each time block, and the prices in that block.

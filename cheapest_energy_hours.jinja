@@ -56,7 +56,7 @@
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots'
                                 ) -%}
-    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] -%}
+    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all'] -%}
     {# Get data out of the selected entity, find right attributes if needed #}
         {%- set today = state_attr(sensor, attr_today) -%}
         {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
@@ -211,7 +211,7 @@
                                 {%- endif -%}
                             {%- endif -%}
                         {# create output for all modes #}
-                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[]) -%}
+                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], all={}) -%}
                             {%- set last_values = int(h*no_weight_points) -%}
                             {%- for i in range(values|count-(last_values-1)) -%}
                                 {%- set list = values[i:i+last_values] | map(attribute='value') | list -%}
@@ -230,10 +230,10 @@
                                 {%- set min, max = list | min, list | max -%}
                                 {%- if output.average is none or ((a < b) if lowest else (a > b)) -%}
                                     {%- set output.list = list -%}
-                                    {%- set output.min = min -%}
-                                    {%- set output.max = max -%}
-                                    {%- set output.weighted_average = a -%}
-                                    {%- set output.average = list | average -%}
+                                    {%- set output.min = min | round(5) -%}
+                                    {%- set output.max = max | round(5) -%}
+                                    {%- set output.weighted_average = a | round(5) -%}
+                                    {%- set output.average = list | average | round(5) -%}
                                     {%- set output.start = _format_date(values[i].time, time_format | default(none)) -%}
                                     {%- set output.end = _format_date(values[i].time + timedelta(hours=h), time_format | default(none)) -%}
                                     {%- set index_min = output.list.index(output.min) -%}
@@ -244,7 +244,23 @@
                                 {%- endif -%}
                             {%- endfor -%}
                         {# output date based on the selected mode #}
-                            {{- output[mode] | round(5) if output[mode] | is_number else output[mode] -}}
+                            {%- if mode == 'all' -%}
+                                {{
+                                    dict(
+                                            start=output.start,
+                                            end=output.end,
+                                            min=output.min,
+                                            max=output.max,
+                                            time_min=output.time_min,
+                                            time_max=output.time_max,
+                                            average=output.average,
+                                            weighted_average=output.weighted_average,
+                                            list=output.list
+                                        ) | to_json
+                                }}
+                            {%- else -%}
+                                {{- output[mode] -}}
+                            {%- endif -%}
                     {%- endif -%}
                 {%- else -%}
                     {%- set error_msg = 
