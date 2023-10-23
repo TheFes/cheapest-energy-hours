@@ -50,6 +50,7 @@
                                     include_tomorrow=false,
                                     lowest=true,
                                     look_ahead=false,
+                                    precision=5,
                                     no_weight_points=1,
                                     weight=none,
                                     program=none,
@@ -229,15 +230,15 @@
                                 {%- set b = output.weighted_average -%}
                                 {%- set min, max = list | min, list | max -%}
                                 {%- if output.average is none or ((a < b) if lowest else (a > b)) -%}
-                                    {%- set output.list = list -%}
-                                    {%- set output.min = min | round(5) -%}
-                                    {%- set output.max = max | round(5) -%}
+                                    {%- set pr = precision | default(5) -%}
+                                    {%- set output.list = list | map('round', pr) | list -%}
+                                    {%- set output.min = min | round(pr) -%}
+                                    {%- set output.max = max | round(pr) -%}
                                     {%- set output.weighted_average = a | round(5) -%}
-                                    {%- set output.average = list | average | round(5) -%}
+                                    {%- set output.average = list | average | round(pr) -%}
                                     {%- set output.start = _format_date(values[i].time, time_format | default(none)) -%}
                                     {%- set output.end = _format_date(values[i].time + timedelta(hours=h), time_format | default(none)) -%}
-                                    {%- set index_min = output.list.index(output.min) -%}
-                                    {%- set index_max = output.list.index(max) -%}
+                                    {%- set index_min, index_max = list.index(min), list.index(max) -%}
                                     {%- set output.time = values[i:i+last_values] | map(attribute='time') | list -%}
                                     {%- set output.time_min = _format_date(output.time[index_min], time_format | default(none)) -%}
                                     {%- set output.time_max = _format_date(output.time[index_max], time_format | default(none)) -%}
