@@ -68,7 +68,7 @@
         {# try to find correct attributes if no valid data was found #}
             {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default(attr_today, true) -%}
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
-            {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true)  -%}
+            {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true) -%}
         {# set empty lists if data is not requires becasue of include parameters #}
             {%- set today = (state_attr(sensor, attr_today) if include_today) | default([], true) -%}
             {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if include_tomorrow) | default([], true) -%}
@@ -83,8 +83,8 @@
                             | list
                 -%}
                 {%- set tk_value = tk_list[0][1] | string if tk_list else '' -%}
-                {%- set td, tm = now().date() | string, (now() + timedelta(days=1)).date() | string -%}
-                {%- set tk_valid = tk_value and (td in tk_value or tm in tk_value) -%}
+                {%- set yd, td, tm = (now() - timedelta(days=1)).date() | string, now().date() | string, (now() + timedelta(days=1)).date() | string -%}
+                {%- set tk_valid = tk_value and (yd in tk_value or td in tk_value or tm in tk_value) -%}
                 {%- set time_key = tk_list[0][0] if tk_valid else time_key -%}
             {%- endif -%}
             {%- if value_key not in data[0] %}
