@@ -39,7 +39,7 @@ Run the `homeassistant.reload_custom_templates` service call to load the file.
 # How to use
 The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide attributes with the prices for today and tomorrow, either in seperate attributes or in a combined one and which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
-The macro will try to find the right keys for the start datetime and price, if this doesn't work, you can provide it.
+The macro will try to find the right attributes with the data for today and tomorrow and the correct keys for the start datetime and price, if this doesn't work, you can provide it.
 
 Optional parameters are listed below:
 

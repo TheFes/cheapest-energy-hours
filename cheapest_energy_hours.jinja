@@ -8,6 +8,31 @@
     {%- endif -%}
 {%- endmacro -%}
 
+{%- macro _find_attr(sensor, type) -%}
+    {%- set td = now().date() | string -%}
+    {%- set tm = (now() + timedelta(days=1)).date() | string -%}
+    {%- for a in states[sensor].attributes.items() | rejectattr('1', 'string') | rejectattr('1', 'mapping') | selectattr('1', 'iterable') -%}
+        {%- if a[1][0] is mapping -%}
+        {%- set ns = namespace(td=false, tm=false) -%}
+        {%- for i in a[1] -%}
+            {%- set ns.td = i.values() | map('string') | select('contains', td) | list | count > 0 if not ns.td else true %}
+            {%- set ns.tm = i.values() | map('string') | select('contains', tm) | list | count > 0 if not ns.tm else true %}
+        {%- endfor -%}
+        {%- set results = 
+                            {
+                                'all': ns.td and ns.tm,
+                                'today': ns.td and not ns.tm,
+                                'tomorrow': not ns.td and ns.tm
+                            }
+        -%}
+        {%- if results[type] -%}
+            {{ a[0] }}
+            {%- break -%}
+        {%- endif -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
+
 {%- macro cheapest_energy_hours(
                                     sensor,
                                     start,
@@ -32,9 +57,21 @@
                                     plot_attr='energy_plots'
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split'] -%}
-    {# Get data out of the selected entity #}
-        {%- set today = (state_attr(sensor, attr_today) if include_today) | default([], true) -%}
-        {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if include_tomorrow) | default([], true) -%}
+    {# Get data out of the selected entity, find right attributes if needed #}
+        {%- set today = state_attr(sensor, attr_today) -%}
+        {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
+        {%- set all = state_attr(sensor, attr_all) -%}
+        {# Check if data is available and as expected #}
+            {%- set today_check = not include_today or today is not string and today is not mapping and today is iterable and today and today[0] is mapping -%}
+            {%- set tomorrow_check = not include_tomorrow or tomorrow is not string and today is not mapping and today is iterable and today and today[0] is mapping -%}
+            {%- set all_check = not (today_check and tomorrow_check) and all is not string and today is not mapping and today is iterable and today and today[0] is mapping -%}
+        {# try to find correct attributes if no valid data was found #}
+            {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default(attr_today, true) -%}
+            {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
+            {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true)  -%}
+        {# set empty lists if data is not requires becasue of include parameters #}
+            {%- set today = (state_attr(sensor, attr_today) if include_today) | default([], true) -%}
+            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if include_tomorrow) | default([], true) -%}
         {%- set data = (today + tomorrow) or state_attr(sensor, attr_all) | default([], true) -%}
     {# Try to find the right time_key and value_key if provided parameters are not found #}
         {%- if data[0] | default is mapping -%}
@@ -43,11 +80,12 @@
                         data[0].items()
                             | rejectattr('1', 'is_number')
                             | sort(attribute='1')
-                            | selectattr('1', 'contains', now().date()| string)
-                            | map(attribute='0')
                             | list
                 -%}
-                {%- set time_key = tk_list | first if tk_list else time_key -%}
+                {%- set tk_value = tk_list[0][1] | string if tk_list else '' -%}
+                {%- set td, tm = now().date() | string, (now() + timedelta(days=1)) | string -%}
+                {%- set tk_valid = tk_value and (td in tk_value or tm in tk_value) -%}
+                {%- set time_key = tk_list[0][0] if tk_valid else time_key -%}
             {%- endif -%}
             {%- if value_key not in data[0] %}
                 {%- set vk_list =
