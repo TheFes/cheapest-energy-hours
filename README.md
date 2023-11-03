@@ -98,6 +98,9 @@ A json string with the prices in the selected time period (use `from_json` to co
 #### weighted_average
 The average price taking into account the weight assigned to the different time sections
 
+#### cheap_now
+Returns `"true"` if the current time is within the cheapest hours based on your selection, otherwise `"false"`
+
 #### all
 Outputs all the above modes in a json string dictionary. Convert to a actual dictionary using `from_json`. This can be useful if you need more than one output mode for the same selection.
 Exmple output:
@@ -139,7 +142,8 @@ Example output:
     "hours": 1,
     "prices": [
       -0.004
-    ]
+    ],
+    "cheap_now": false
   },
   {
     "start": "2023-09-20T02:00:00+02:00",
@@ -149,7 +153,8 @@ Example output:
       -0.002,
       -0.004,
       -0.003
-    ]
+    ],
+    "cheap_now": true
   },
   {
     "start": "2023-09-20T12:00:00+02:00",
@@ -158,7 +163,8 @@ Example output:
     "prices": [
       -0.004,
       -0.006
-    ]
+    ],
+    "cheap_now": false
   }
 ]
 ```
