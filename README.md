@@ -70,6 +70,7 @@ Optional parameters are listed below:
 |`precision`|integer|`5`|`2`|The number of decimals used for the price output|
 |`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
 |`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
+|`price_factor`|flaot|`1`|`0.01`|All prices will be multiplied with this value, so if your pr`ices are in cents and you want divided by 100, you can use `0.01`. Or if you want to add 20% VAT, you can use `1.2`
 |`value_on_error`|any|error description|`as_datetime('2099-12-31)`|You can optionally provide a value to be outputted in case there is an error. This can be useful if you eg want it to use as state in a template sensor which has `device_class: timestamp` which will run in error if the state value is not as expected. Or if you output the data on your dashboard in a markup card and want to provide your own message.
 
 ### Output modes
