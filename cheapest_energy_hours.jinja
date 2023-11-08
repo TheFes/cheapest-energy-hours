@@ -11,26 +11,32 @@
 {%- macro _find_attr(sensor, type) -%}
     {%- set td = now().date() | string -%}
     {%- set tm = (now() + timedelta(days=1)).date() | string -%}
-    {%- for a in states[sensor].attributes.items() | rejectattr('1', 'string') | rejectattr('1', 'mapping') | selectattr('1', 'iterable') -%}
-        {%- if a[1][0] is mapping -%}
-        {%- set ns = namespace(td=false, tm=false) -%}
-        {%- for i in a[1] -%}
-            {%- set ns.td = i.values() | map('string') | select('contains', td) | list | count > 0 if not ns.td else true %}
-            {%- set ns.tm = i.values() | map('string') | select('contains', tm) | list | count > 0 if not ns.tm else true %}
-        {%- endfor -%}
-        {%- set results = 
-                            {
-                                'all': ns.td and ns.tm,
-                                'today': ns.td and not ns.tm,
-                                'tomorrow': not ns.td and ns.tm
-                            }
+    {%- if sensor | has_value -%}
+        {%- for a in states[sensor].attributes.items()
+                        | rejectattr('1', 'string')
+                        | rejectattr('1', 'mapping')
+                        | selectattr('1', 'iterable')
         -%}
-        {%- if results[type] -%}
-            {{ a[0] }}
-            {%- break -%}
-        {%- endif -%}
-        {%- endif -%}
-    {%- endfor -%}
+            {%- if a[1][0] is mapping -%}
+                {%- set ns = namespace(td=false, tm=false) -%}
+                {%- for i in a[1] -%}
+                    {%- set ns.td = i.values() | map('string') | select('contains', td) | list | count > 0 if not ns.td else true %}
+                    {%- set ns.tm = i.values() | map('string') | select('contains', tm) | list | count > 0 if not ns.tm else true %}
+                {%- endfor -%}
+                {%- set results = 
+                                    {
+                                        'all': ns.td and ns.tm,
+                                        'today': ns.td and not ns.tm,
+                                        'tomorrow': not ns.td and ns.tm
+                                    }
+                -%}
+                {%- if results[type] -%}
+                    {{ a[0] }}
+                    {%- break -%}
+                {%- endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
 {%- endmacro -%}
 
 {%- macro cheapest_energy_hours(
@@ -51,6 +57,7 @@
                                     lowest=true,
                                     look_ahead=false,
                                     precision=5,
+                                    price_factor=1,
                                     no_weight_points=1,
                                     weight=none,
                                     program=none,
@@ -150,7 +157,7 @@
                 {%- for item in data -%}
                     {%- set time = item[time_key] -%}
                     {%- set time = as_datetime(time) if time is string else time -%}
-                    {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key])] -%}
+                    {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
                 {%- endfor -%}
             {# determine how many data points per hour are used #}
                 {%- set dph = 3600 / (rebuild.data[1].time - rebuild.data[0].time).seconds -%}
