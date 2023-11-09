@@ -117,7 +117,18 @@
                     if weight is list
                     else none
         -%}
-        {%- set no_weight_points = no_weight_points if no_weight_points != 1 else [6, (1 / (h % 1)) | round(0)] | min -%}
+    {# calculate no_weight_points based on hour input #}
+        {%- set minutes = (h % 1 * 60) | round(0) -%}
+        {%- set minutes = [minutes, 60 - minutes] | max -%}
+        {%- set div_list = [60, 30, 20, 15, 12, 10] -%}
+        {%- set ns = namespace(d=60, wp=1) %}
+        {%- for div in div_list %}
+            {%- if div <= minutes and minutes % div < ns.d -%}
+                {%- set ns.d = minutes % div -%}
+                {%- set ns.wp = (60 / div) | int -%}
+            {%- endif -%}
+        {%- endfor -%}
+        {%- set no_weight_points = no_weight_points if no_weight_points != 1 else ns.wp -%}
         {%- set w = [1] * (h * no_weight_points) | round(0) | int if w is none and no_weight_points != 1 else w -%}
     {# set number of hours based on weight points in case hours setting is not provided #}
         {%- set h_wp = (w | count / no_weight_points) | round(0, 'ceil') | int if w else h -%}
