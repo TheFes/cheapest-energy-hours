@@ -1,4 +1,5 @@
 {
     "name": "Cheapest Energy Hours",
-    "filename": "cheapest_energy_hours.jinja"
+    "filename": "cheapest_energy_hours.jinja",
+    "homeassistant": "2023.11.0b0"
 }
