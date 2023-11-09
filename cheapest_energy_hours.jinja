@@ -88,7 +88,7 @@
             {%- set start, end = start | as_local, end | as_local -%}
         {# set empty lists if data is not requires becasue of include parameters #}
             {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + timedelta(days=1)) | default([], true) -%}
-            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end => today_at() + timedelta(days=1)) | default([], true) -%}
+            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end >= today_at() + timedelta(days=1)) | default([], true) -%}
         {%- set data = (today + tomorrow) or state_attr(sensor, attr_all) | default([], true) -%}
     {# Try to find the right time_key and value_key if provided parameters are not found #}
         {%- if data[0] | default is mapping -%}
