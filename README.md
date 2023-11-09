@@ -56,9 +56,9 @@ Optional parameters are listed below:
 ## Basic data selection settings
 |name|type|default|example|description|
 |---|---|---|---|---|
-|`hours`|integer|`1`|`3`|The number of consecutive hours|
-|`start`|string|`"00:00"`|`"19:00"`|Start time to take into consideration for the value selection|
-|`end`|string|`none`|`"23:00"`|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow|
+|`hours`|float|`1`|`3.5`|The number of consecutive hours|
+|`start`|string, datetime (string)|`"00:00"`|`"19:00"`|Start time to take into consideration for the value selection, either a string with the time in 24hr format, or a datetime (string)|
+|`end`|string, datetime (string)|`none`|`"23:00"`|End time to take into consideration for the value selection, if `include_tomorrow` is set to `true` this will be the time tomorrow. In case a datetime (string) is used, the date of the input will be used and `include_tomorrow` will be ignored|
 |`include_today`|boolean|`true`|`false`|Boolean to select if todays values should be included|
 |`include_tomorrow`|boolean|`false`|`true`|Boolean to select if tomorrows values should be included|
 

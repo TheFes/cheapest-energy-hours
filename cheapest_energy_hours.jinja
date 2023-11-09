@@ -41,10 +41,10 @@
 
 {%- macro cheapest_energy_hours(
                                     sensor,
-                                    start,
-                                    end,
                                     value_on_error,
-                                    hours,
+                                    hours=1,
+                                    start='00:00',
+                                    end='00:00',
                                     attr_today='raw_today',
                                     attr_tomorrow='raw_tomorrow',
                                     attr_all='prices',
@@ -64,15 +64,15 @@
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots'
                                 ) -%}
-    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'cheap_now'] -%}
+    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'cheap_now', 'debug'] -%}
     {# Get data out of the selected entity, find right attributes if needed #}
         {%- set today = state_attr(sensor, attr_today) -%}
         {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
         {%- set all = state_attr(sensor, attr_all) -%}
         {# Check if data is available and as expected #}
-            {%- set today_check = not include_today or today is not string and today is not mapping and today is iterable and today and today[0] is mapping -%}
-            {%- set tomorrow_check = not include_tomorrow or tomorrow is not string and today is not mapping and today is iterable and today and today[0] is mapping -%}
-            {%- set all_check = not (today_check and tomorrow_check) and all is not string and today is not mapping and today is iterable and today and today[0] is mapping -%}
+            {%- set today_check = not include_today or today is list and today and today[0] is mapping -%}
+            {%- set tomorrow_check = not include_tomorrow or tomorrow is list and today and today[0] is mapping -%}
+            {%- set all_check = not (today_check and tomorrow_check) and all is list and today and today[0] is mapping -%}
         {# try to find correct attributes if no valid data was found #}
             {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default(attr_today, true) -%}
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
@@ -114,9 +114,11 @@
             {%- set no_weight_points = plot_data.get(program, {}).get('no_weight_points', 1) -%}
         {%- endif -%}
         {%- set w = weight | map('float', none) | reject('none') | list
-                    if weight is iterable and weight is not string
+                    if weight is list
                     else none
         -%}
+        {%- set no_weight_points = no_weight_points if no_weight_points != 1 else [6, (1 / (h % 1)) | round(0)] | min -%}
+        {%- set w = [1] * (h * no_weight_points) | round(0) | int if w is none and no_weight_points != 1 else w -%}
     {# set number of hours based on weight points in case hours setting is not provided #}
         {%- set h_wp = (w | count / no_weight_points) | round(0, 'ceil') | int if w else h -%}
         {%- set h = h if hours is defined else h_wp -%}
@@ -146,12 +148,14 @@
         {# no error - continue with macro #}
         {%- else -%}
             {# Set defaults for variables which are not provided #}
-                {%- set s = today_at(start) if start is defined else today_at() -%}
-                {%- set s = s + timedelta(days=1) if not include_today else s -%}
+                {%- set start = start | as_datetime if start is not datetime and start | as_datetime is not none else start -%}
+                {%- set start = start if start is datetime else today_at(start) if start is defined else today_at() -%}
+                {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
                 {%- set n = today_at(now().strftime('%H:00')) -%}
-                {%- set s = n if look_ahead and s < n else s -%}
-                {%- set e = (today_at(end) if end is defined else today_at() + timedelta(days=1)) + timedelta(days=1 if include_tomorrow else 0) -%}
-                {%- set e = e + timedelta(days=1) if not include_today and end is defined else e -%}
+                {%- set start = n if look_ahead and start < n else start -%}
+                {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
+                {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1)) + timedelta(days=1 if include_tomorrow else 0) -%}
+                {%- set start, end = start | as_local, end | as_local -%}
             {# Rebuild data from sensor to generic format #}
                 {%- set rebuild = namespace(data=[]) -%}
                 {%- for item in data -%}
@@ -159,25 +163,67 @@
                     {%- set time = as_datetime(time) if time is string else time -%}
                     {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
                 {%- endfor -%}
+                {%- set new_data = rebuild.data -%}
             {# determine how many data points per hour are used #}
-                {%- set dph = 3600 / (rebuild.data[1].time - rebuild.data[0].time).seconds -%}
+                {%- set dph = 3600 / (new_data[1].time - new_data[0].time).seconds -%}
                 {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
+                {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
+            {# rebuild data again if weight_points are provided #}
+                {%- if wp_minutes != dp_minutes and w is not none -%}
+                    {%- if dp_minutes > wp_minutes -%}
+                        {%- set rebuild = namespace(data=[]) -%}
+                        {%- for v in (new_data * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
+                            {%- set t = v.time -%}
+                            {%- set t = t + timedelta(minutes=(wp_minutes*(loop.index0 % int(dp_minutes/wp_minutes)))) -%}
+                            {%- set rebuild.data = rebuild.data + [ dict(time=t, value=v.value) ] -%}
+                        {%- endfor -%}
+                        {%- set new_data = rebuild.data -%}
+                        {%- set dph = 3600 / (new_data[1].time - new_data[0].time).seconds -%}
+                        {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
+                        {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
+                    {%- else -%}
+                        {%- set weight_adjust = namespace(weight=[]) -%}
+                        {%- for item in w -%}
+                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * int(wp_minutes/dp_minutes) -%}
+                        {%- endfor -%}
+                        {%- set w = weight_adjust.weight -%}
+                    {%- endif -%}
+                {%- endif -%}
+            {# set variables to check if numbeer of wp/h match dp/h #}
+                {%- set check_list = [dp_minutes, wp_minutes] | sort -%}
+                {%- set check = check_list[1] % check_list[0] == 0 -%}
             {# Perform selection based on start and end on the data #}
-                {%- set values = rebuild.data
-                                    | selectattr('time', '>=', s)
-                                    | selectattr('time', '<', e)
+                {%- set values = new_data
+                                    | selectattr('time', '>=', start)
+                                    | selectattr('time', '<', end)
                                     | selectattr('value', 'is_number')
                                     | list
                 -%}
-            {# set variables to check if numbeer of wp/h match dp/h #}
-                {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
-                {%- set check_list = [dp_minutes, wp_minutes] | sort -%}
-                {%- set check = check_list[1] % check_list[0] == 0 -%}
             {# Check if there is data, and find the right hour block #}
-                {%- if values | count >= dp and check-%}
-                    {%- if mode == 'split' -%}
+                {%- if values | count >= dp and check -%}
+                    {%- if mode == 'split' or mode == 'debug' -%}
                         {# sort values and take out hours needed #}
-                            {%- set values = (values | sort(attribute='value'))[:dp] | sort(attribute='time') -%}
+                            {%- set prices = (values | sort(attribute='value') | map(attribute='value') | list)[:dp] -%}
+                            {# {%- set values = (values | sort(attribute='value'))[:dp] | sort(attribute='time') -%} #}
+                            {%- set values = values | selectattr('value', 'in', prices) | sort(attribute='time') | list -%}
+                            {%- set values_max = values | selectattr('value', 'eq', prices | max) | list -%}
+                            {%- set max_needed = dp - (values | count - values_max | count) -%}
+                            {%- if max_needed != values_max | count -%}
+                                    {%- set ns = namespace(needed=max_needed, other=values | rejectattr('value', 'eq', prices | max) | list, max=values_max) -%}
+                                    {%- for v in values_max -%}
+                                        {%- set above = ns.other | selectattr('time', 'eq', v.time + timedelta(minutes=dp_minutes)) | list | count -%}
+                                        {%- set below = ns.other | selectattr('time', 'eq', v.time - timedelta(minutes=dp_minutes)) | list | count -%}
+                                        {%- if above or below -%}
+                                            {%- set ns.other = ns.other + [v] -%}
+                                            {%- set ns.max = ns.max | reject('eq', v) | sort(attribute='time') | list -%}
+                                            {%- set ns.needed = ns.needed - 1 -%}
+                                        {%- endif -%}
+                                        {%- if ns.needed == 0 %}
+                                            {%- break -%}
+                                        {%- endif -%}
+                                    {%- endfor -%}
+                                    {%- set values = (ns.other + ns.max[:ns.needed]) | sort(attribute='time') -%}
+                            {%- endif -%}
                             {%- set split = namespace(split=[], start=none, prices=[], datapoints=0) -%}
                             {%- for i in range(dp) -%}
                                 {%- set dt = values[loop.index0].time -%}
@@ -187,7 +233,8 @@
                                     {%- set split.prices = [values[0].value] -%}
                                 {%- elif values[loop.index0 - 1].time != dt - timedelta(hours=1/dph) -%}
                                     {%- set cheap_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
-                                    {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(split.start + timedelta(hours=split.datapoints/dph), time_format), hours=split.datapoints/dph, prices=split.prices, cheap_now=cheap_now)] -%}
+                                    {%- set prices = split.prices if split.prices | reject('eq', split.prices[0]) | list | count > 0 else [split.prices[0]] -%}
+                                    {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(split.start + timedelta(hours=split.datapoints/dph), time_format), hours=split.datapoints/dph, prices=prices, cheap_now=cheap_now)] -%}
                                     {%- set split.start = dt -%}
                                     {%- set split.datapoints = 1 -%}
                                     {%- set split.prices = [values[loop.index0].value] -%}
@@ -196,30 +243,13 @@
                                     {%- set split.prices = split.prices + [values[loop.index0].value] -%}
                                     {%- if loop.last -%}
                                         {%- set cheap_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
-                                        {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(dt + timedelta(hours=1/dph), time_format), hours=split.datapoints/dph, prices=split.prices, cheap_now=cheap_now)] -%}
+                                        {%- set prices = split.prices if split.prices | reject('eq', split.prices[0]) | list | count > 0 else [split.prices[0]] -%}
+                                        {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(dt + timedelta(hours=1/dph), time_format), hours=split.datapoints/dph, prices=prices, cheap_now=cheap_now)] -%}
                                     {%- endif -%}
                                 {%- endif -%}
                             {%- endfor -%}
-                            {{- split.split | to_json -}}
+                            {{- '' if mode == 'debug' else split.split | to_json -}}
                     {%- else -%}
-                        {# Change data based on weight input and datpoints per hour if needed #}
-                            {%- if wp_minutes != dp_minutes and w is not none -%}
-                                {%- if dp_minutes > wp_minutes -%}
-                                    {%- set values_adjust = namespace(values=[]) -%}
-                                    {%- for v in (values * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
-                                        {%- set t = v.time -%}
-                                        {%- set t = t + timedelta(minutes=(wp_minutes*(loop.index0 % int(dp_minutes/wp_minutes)))) -%}
-                                        {%- set values_adjust.values = values_adjust.values + [ dict(time=t, value=v.value) ] -%}
-                                    {%- endfor -%}
-                                    {%- set values = values_adjust.values -%}
-                                {%- else -%}
-                                    {%- set weight_adjust = namespace(weight=[]) -%}
-                                    {%- for item in w -%}
-                                        {%- set weight_adjust.weight = weight_adjust.weight + [item] * int(wp_minutes/dp_minutes) -%}
-                                    {%- endfor -%}
-                                    {%- set w = weight_adjust.weight -%}
-                                {%- endif -%}
-                            {%- endif -%}
                         {# create output for all modes #}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], cheap_now=false) -%}
                             {%- set last_values = int(h*no_weight_points) -%}
@@ -271,7 +301,7 @@
                                         ) | to_json
                                 }}
                             {%- else -%}
-                                {{- output[mode] -}}
+                                {{- '' if mode == 'debug' else output[mode] -}}
                             {%- endif -%}
                     {%- endif -%}
                 {%- else -%}
