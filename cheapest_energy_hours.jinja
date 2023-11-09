@@ -64,7 +64,7 @@
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots'
                                 ) -%}
-    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'cheap_now', 'debug'] -%}
+    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now', 'debug'] -%}
     {# Get data out of the selected entity, find right attributes if needed #}
         {%- set today = state_attr(sensor, attr_today) -%}
         {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
@@ -77,9 +77,18 @@
             {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default(attr_today, true) -%}
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
             {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true) -%}
+        {# determine start and end of dataset  #}
+            {%- set start = start | as_datetime if start is not datetime and start | as_datetime is not none else start -%}
+            {%- set start = start if start is datetime else today_at(start) if start is defined else today_at() -%}
+            {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
+            {%- set n = today_at(now().strftime('%H:00')) -%}
+            {%- set start = n if look_ahead and start < n else start -%}
+            {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
+            {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1)) + timedelta(days=1 if include_tomorrow else 0) -%}
+            {%- set start, end = start | as_local, end | as_local -%}
         {# set empty lists if data is not requires becasue of include parameters #}
-            {%- set today = (state_attr(sensor, attr_today) if include_today) | default([], true) -%}
-            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if include_tomorrow) | default([], true) -%}
+            {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + timedelta(days=1)) | default([], true) -%}
+            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end => today_at() + timedelta(days=1)) | default([], true) -%}
         {%- set data = (today + tomorrow) or state_attr(sensor, attr_all) | default([], true) -%}
     {# Try to find the right time_key and value_key if provided parameters are not found #}
         {%- if data[0] | default is mapping -%}
@@ -243,9 +252,9 @@
                                     {%- set split.datapoints = 1 -%}
                                     {%- set split.prices = [values[0].value] -%}
                                 {%- elif values[loop.index0 - 1].time != dt - timedelta(hours=1/dph) -%}
-                                    {%- set cheap_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
+                                    {%- set is_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
                                     {%- set prices = split.prices if split.prices | reject('eq', split.prices[0]) | list | count > 0 else [split.prices[0]] -%}
-                                    {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(split.start + timedelta(hours=split.datapoints/dph), time_format), hours=split.datapoints/dph, prices=prices, cheap_now=cheap_now)] -%}
+                                    {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(split.start + timedelta(hours=split.datapoints/dph), time_format), hours=split.datapoints/dph, prices=prices, is_now=is_now)] -%}
                                     {%- set split.start = dt -%}
                                     {%- set split.datapoints = 1 -%}
                                     {%- set split.prices = [values[loop.index0].value] -%}
@@ -253,16 +262,16 @@
                                     {%- set split.datapoints = split.datapoints + 1 -%}
                                     {%- set split.prices = split.prices + [values[loop.index0].value] -%}
                                     {%- if loop.last -%}
-                                        {%- set cheap_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
+                                        {%- set is_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
                                         {%- set prices = split.prices if split.prices | reject('eq', split.prices[0]) | list | count > 0 else [split.prices[0]] -%}
-                                        {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(dt + timedelta(hours=1/dph), time_format), hours=split.datapoints/dph, prices=prices, cheap_now=cheap_now)] -%}
+                                        {%- set split.split = split.split + [dict(start=_format_date(split.start, time_format), end=_format_date(dt + timedelta(hours=1/dph), time_format), hours=split.datapoints/dph, prices=prices, is_now=is_now)] -%}
                                     {%- endif -%}
                                 {%- endif -%}
                             {%- endfor -%}
                             {{- '' if mode == 'debug' else split.split | to_json -}}
                     {%- else -%}
                         {# create output for all modes #}
-                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], cheap_now=false) -%}
+                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], is_now=false) -%}
                             {%- set last_values = int(h*no_weight_points) -%}
                             {%- for i in range(values|count-(last_values-1)) -%}
                                 {%- set list = values[i:i+last_values] | map(attribute='value') | list -%}
@@ -292,7 +301,7 @@
                                     {%- set output.time = values[i:i+last_values] | map(attribute='time') | list -%}
                                     {%- set output.time_min = _format_date(output.time[index_min], time_format | default(none)) -%}
                                     {%- set output.time_max = _format_date(output.time[index_max], time_format | default(none)) -%}
-                                    {%- set output.cheap_now = output.time[index_min] < now() < output.time[index_max] -%}
+                                    {%- set output.is_now = output.time[index_min] < now() < output.time[index_max] -%}
                                 {%- endif -%}
                             {%- endfor -%}
                         {# output date based on the selected mode #}
@@ -308,7 +317,7 @@
                                             average=output.average,
                                             weighted_average=output.weighted_average,
                                             list=output.list,
-                                            cheap_now=output.cheap_now
+                                            is_now=output.is_now
                                         ) | to_json
                                 }}
                             {%- else -%}
