@@ -123,6 +123,7 @@
             {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
             {%- set weight = plot_data.get(program, {}).get('data') | default(none, true) -%}
             {%- set no_weight_points = plot_data.get(program, {}).get('no_weight_points', 1) -%}
+            {%- set h = weight | count / no_weight_points -%}
         {%- endif -%}
         {%- set w = weight | map('float', none) | reject('none') | list
                     if weight is list
