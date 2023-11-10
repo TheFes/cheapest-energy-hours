@@ -86,7 +86,7 @@
             {%- set n = today_at((now() + timedelta(hours=(1 if now().minute > look_ahead_minutes |int(5) else 0))).strftime('%H:00')) -%}
             {%- set start = n if look_ahead and start < n else start -%}
             {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
-            {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1)) + timedelta(days=1 if include_tomorrow else 0) -%}
+            {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1 if include_tomorrow else 0)) -%}
             {%- set start, end = start | as_local, end | as_local -%}
         {# set empty lists if data is not requires becasue of include parameters #}
             {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + timedelta(days=1)) | default([], true) -%}
