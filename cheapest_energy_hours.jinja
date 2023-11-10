@@ -42,10 +42,10 @@
 {%- macro cheapest_energy_hours(
                                     sensor,
                                     value_on_error,
+                                    end,
                                     hours=1,
                                     look_ahead_minutes=5,
-                                    start='00:00',
-                                    end='00:00',
+                                    start=today_at(),
                                     attr_today='raw_today',
                                     attr_tomorrow='raw_tomorrow',
                                     attr_all='prices',
@@ -85,6 +85,7 @@
             {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
             {%- set n = today_at((now() + timedelta(hours=(1 if now().minute > look_ahead_minutes |int(5) else 0))).strftime('%H:00')) -%}
             {%- set start = n if look_ahead and start < n else start -%}
+            {%- set end = end | default(today_at() + timedelta(days=2 if include_tomorrow else 1)) -%}
             {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
             {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1 if include_tomorrow else 0)) -%}
             {%- set start, end = start | as_local, end | as_local -%}
@@ -187,6 +188,7 @@
                 {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
                 {%- set n = today_at(now().strftime('%H:00')) -%}
                 {%- set start = n if look_ahead and start < n else start -%}
+                {%- set end = end if end | default(today_at() + timedelta(days=2 if include_tomorrow else 1)) -%}
                 {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
                 {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1)) + timedelta(days=1 if include_tomorrow else 0) -%}
                 {%- set start, end = start | as_local, end | as_local -%}
