@@ -78,38 +78,21 @@ Optional parameters are listed below:
 |`value_on_error`|any|error description|`as_datetime('2099-12-31)`|You can optionally provide a value to be outputted in case there is an error. This can be useful if you eg want it to use as state in a template sensor which has `device_class: timestamp` which will run in error if the state value is not as expected. Or if you output the data on your dashboard in a markup card and want to provide your own message.
 
 ### Output modes
+|mode|description|
+|---|---|
+|`start` (default)|The isoformat datetime string with the start of the selected time period|
+|`end`|The isoformat datetime string with the start of the selected time period|
+|`min`|The lowest price in the the selected time period|
+|`max`|The highest price in the selected time period|
+|`time_min`|The isoformat datetime string of the time section with the lowest price within the selected time period|
+|`time_max`|The isoformat datetime string of the time section with the highest price within the selected time period|
+|`list`|A json string with the prices in the selected time period (use `from_json` to convert it to a list)|
+|`weighted_average`|The average price taking into account the weight assigned to the different time sections
+|`is_now`|Returns `"true"` if the current time is within the cheapest hours based on your selection, otherwise `"false"`|
+|`all`|Outputs all the above modes in a json string dictionary. Convert to a actual dictionary using `from_json`. This can be useful if you need more than one output mode for the same selection. Besides the data from all modes above, it will also output the number of hours used for the calculation (it can differ from the input because of the calculation to split the data), the number or datapoints per hour used for the calculations, and the total number of datapoints. [example](#example-mode-all)|
+|`split`|This specific output mode will return a json string with the consecutive time blocks in which the prices are lowest for the selected hours (within the selected `start` and `end`). This can be convenient if you eg want to charge your car for, and you know this is going to take 6 hours, and you only want to charge it during the 6 cheapest hours. It will also return the number of hours in each time block, and the prices in that block.<br>This mode will not work with weights and programs, it will only look a the hours within your selection. Use `from_json` to convert it to a proper list with dictionaries.<br>Besides the time blocks, it will also output some general data about the whole dataset. [example](#example-mode-split)|
 
-#### start (default)
-The isoformat datetime string with the start of the selected time period
-
-#### end
-The isoformat datetime string with the start of the selected time period
-
-#### min
-The lowest price in the the selected time period
-
-#### max
-The highest price in the selected time period
-
-#### time_min
-The isoformat datetime string of the time section with the lowest price within the selected time period
-
-#### time_max
-The isoformat datetime string of the time section with the highest price within the selected time period
-
-#### list
-A json string with the prices in the selected time period (use `from_json` to convert it to a list)
-
-#### weighted_average
-The average price taking into account the weight assigned to the different time sections
-
-#### is_now
-Returns `"true"` if the current time is within the cheapest hours based on your selection, otherwise `"false"`
-
-#### all
-Outputs all the above modes in a json string dictionary. Convert to a actual dictionary using `from_json`. This can be useful if you need more than one output mode for the same selection.
-Besides the data from all modes above, it will also output the number of hours used for the calculation (it can differ from the input because of the calculation to split the data), the number or datapoints per hour used for the calculations, and the total number of datapoints.
-Exmple output:
+#### Example mode `all`
 ```yaml
 {
   "start": "2023-11-10T03:00:00+01:00",
@@ -133,13 +116,7 @@ Exmple output:
 }
 ```
 
-#### split
-This specific output mode will return a json string with the consecutive time blocks in which the prices are lowest for the selected hours (within the selected `start` and `end`). This can be convenient if you eg want to charge your car for, and you know this is going to take 6 hours, and you only want to charge it during the 6 cheapest hours.
-It will also return the number of hours in each time block, and the prices in that block.
-This mode will not work with weights and programs, it will only look a the hours within your selection. Use `from_json` to convert it to a proper list with dictionaries.
-Besides the time blocks, it will also output some general data about the whole dataset.
-
-Example
+#### Example mode `split`
 ```jinja
 {{ cheapest_energy_hours('sensor.nordpool_kwh_nl_eur_3_10_021', hours=6, mode='split', look_ahead=true, include_tomorrow=true, end='14:00') | from_json }}
 ```
