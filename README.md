@@ -34,12 +34,15 @@ This custom template is compatible with [HACS](https://hacs.xyz/), which means t
 For a manual install you can copy the contents of `cheapest_energy_hours.jinja` to a jinja file in your `custom_templates` folder.
 Run the `homeassistant.reload_custom_templates` service call to load the file.
 
-
-
 # How to use
 The only required field is the `sensor` which provides you the data. I use the [Nordpool](https://github.com/custom-components/nordpool) integration for that, but you can use another. The sensor should provide attributes with the prices for today and tomorrow, either in seperate attributes or in a combined one and which then need to contain a list with hourly prices, and the datetime on which that hour starts. The nordpool integration also provides the end time, but that is not required for this macro.
 
 The macro will try to find the right attributes with the data for today and tomorrow and the correct keys for the start datetime and price, if this doesn't work, you can provide it.
+
+## 🚨 IMPORTANT NOTES 🚨
+
+* A macro **ALWAYS** returns a string. So you need to convert the output based on the selected [mode](#output-modes). So if your output is the price, you need to convert it to a number using the `float` function of filter to be able to calculate with it, if it is the start or end time, you can use `as_datetime`. For more complex structures used in the modes `split` and `all` use `from_json` (only available as filter) and for the mode `is_now` you can use `bool`. Make sure to use defaults, or use the `value_on_error` parameter to avoid errors while converting the data.
+* When using a `start` and `end` which spans midnight, the output will change after midnight, as the source data will change as well (the data for the previous day will no longer be available). To avoid issues with changing data it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and trigger it eg an hour before your `start` setting.
 
 Optional parameters are listed below:
 
@@ -51,7 +54,7 @@ Optional parameters are listed below:
 |`attr_all`|string|`prices`|`prices_all`|The attribute which contains both the data of today and tomorrow if provided by the sensor, defaults to `prices`|
 |`time_key`|string|`"start"`|`"datetime"`|The key used in the attributes of your integration for the start times of the hours|
 |`value_key`|string|`"value"`|`"price"`|The key used in the attributes of your integration for the price values|
-
+|`datapoints_per_hour`|integer|`1`|`2`|Number of datapoints per hour in the source sensor, for example with prices per 30 minutes, this should be set to `2`. This is only used if the setting for `hours` is not a whole number. It is calculated by the macro itself, but if not set it could be that the macro calculates an invalid 
 
 ## Basic data selection settings
 |name|type|default|example|description|
@@ -68,7 +71,8 @@ Optional parameters are listed below:
 |`lowest`|boolean|`true`|`false`|Boolean to select if the marco should find the lowest price, set to `false` to find the highest price|
 |`mode`|string|`"start"`|`"average"`|see [seperate section](#output-modes)|
 |`precision`|integer|`5`|`2`|The number of decimals used for the price output|
-|`look_ahead`|boolean|`false`|`true`|When set to true, only the hours as of the current hour are taken into account. This overrides the `start` time if that time is earlier than the current hour.
+|`look_ahead`|boolean|`false`|`true`|When set to true, only the hours in the future. The current hour is also used if it not passed the `look_ahead_minutes` setting. This overrides the `start` time if that time is earlier than the current hour.|
+|`look_ahead_minutes`|integer|`5`|`30`|The number of minutes in which the current hour is still used for the `look_ahead` parameter. With the default setting the current hour would still be used at `13:04`, but not anymore at if it is later than `13:05`, to always inlcude the current hour, set to `60`, to never include the current hour, set to `0`|
 |`time_format`|string|`none`|`"time24"`|You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
 |`price_factor`|float|`1`|`0.01`|All prices will be multiplied with this value, so if your prices are in cents and you want divided by 100, you can use `0.01`. Or if you want to add 20% VAT, you can use `1.2`
 |`value_on_error`|any|error description|`as_datetime('2099-12-31)`|You can optionally provide a value to be outputted in case there is an error. This can be useful if you eg want it to use as state in a template sensor which has `device_class: timestamp` which will run in error if the state value is not as expected. Or if you output the data on your dashboard in a markup card and want to provide your own message.
@@ -104,24 +108,28 @@ Returns `"true"` if the current time is within the cheapest hours based on your 
 
 #### all
 Outputs all the above modes in a json string dictionary. Convert to a actual dictionary using `from_json`. This can be useful if you need more than one output mode for the same selection.
+Besides the data from all modes above, it will also output the number of hours used for the calculation (it can differ from the input because of the calculation to split the data), the number or datapoints per hour used for the calculations, and the total number of datapoints.
 Exmple output:
 ```yaml
 {
-  "start": "2023-10-24T01:00:00+02:00",
-  "end": "2023-10-24T06:00:00+02:00",
-  "min": 0.08946,
-  "max": 0.09721,
-  "time_min": "2023-10-24T03:00:00+02:00",
-  "time_max": "2023-10-24T01:00:00+02:00",
-  "average": 0.09319,
-  "weighted_average": 0.09319,
+  "start": "2023-11-10T03:00:00+01:00",
+  "end": "2023-11-10T04:30:00+01:00",
+  "min": 0.059,
+  "max": 0.06,
+  "time_min": "2023-11-10T03:00:00+01:00",
+  "time_max": "2023-11-10T04:00:00+01:00",
+  "average": 0.05933,
+  "weighted_average": 0.05933,
   "list": [
-    0.09721,
-    0.09454,
-    0.08946,
-    0.09027,
-    0.09445
-  ]
+    0.059,
+    0.059,
+    0.06
+  ],
+  "is_now": false,
+  "no_weight_points": 2,
+  "datapoints_per_hour": 2,
+  "hours": 1.5,
+  "datapoints": 3
 }
 ```
 
@@ -129,6 +137,7 @@ Exmple output:
 This specific output mode will return a json string with the consecutive time blocks in which the prices are lowest for the selected hours (within the selected `start` and `end`). This can be convenient if you eg want to charge your car for, and you know this is going to take 6 hours, and you only want to charge it during the 6 cheapest hours.
 It will also return the number of hours in each time block, and the prices in that block.
 This mode will not work with weights and programs, it will only look a the hours within your selection. Use `from_json` to convert it to a proper list with dictionaries.
+Besides the time blocks, it will also output some general data about the whole dataset.
 
 Example
 ```jinja
@@ -166,6 +175,11 @@ Example output:
       -0.006
     ],
     "is_now": false
+  },
+  {
+    "total_hours": 6,
+    "datapoints_per_hour": 1,
+    "datapoints": 6
   }
 ]
 ```
