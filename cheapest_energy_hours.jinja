@@ -85,7 +85,7 @@
             {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
             {%- set n = today_at((now() + timedelta(hours=(1 if now().minute > look_ahead_minutes |int(5) else 0))).strftime('%H:00')) -%}
             {%- set start = n if look_ahead and start < n else start -%}
-            {%- set end = end | default(today_at() + timedelta(days=2 if include_tomorrow else 1)) -%}
+            {%- set end = today_at() + timedelta(days=2 if include_tomorrow else 1) if end is not defined or end in ['00:00', '0:00', '0:0'] else end -%}
             {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
             {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1 if include_tomorrow else 0)) -%}
             {%- set start, end = start | as_local, end | as_local -%}
@@ -182,16 +182,6 @@
             {{- value_on_error if use_voe else '{} error{}: {}'.format(errors | count, 's' if errors | count > 1, errors | join(', ')) -}}
         {# no error - continue with macro #}
         {%- else -%}
-            {# Set defaults for variables which are not provided #}
-                {%- set start = start | as_datetime if start is not datetime and start | as_datetime is not none else start -%}
-                {%- set start = start if start is datetime else today_at(start) if start is defined else today_at() -%}
-                {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
-                {%- set n = today_at(now().strftime('%H:00')) -%}
-                {%- set start = n if look_ahead and start < n else start -%}
-                {%- set end = end if end | default(today_at() + timedelta(days=2 if include_tomorrow else 1)) -%}
-                {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
-                {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1)) + timedelta(days=1 if include_tomorrow else 0) -%}
-                {%- set start, end = start | as_local, end | as_local -%}
             {# Rebuild data from sensor to generic format #}
                 {%- set rebuild = namespace(data=[]) -%}
                 {%- for item in data -%}
@@ -235,7 +225,6 @@
                                     | selectattr('value', 'is_number')
                                     | list
                 -%}
-                {{- dict(values=values | count, no_weight_points=no_weight_points, dph=dph, dp=dp, h=h, calc_h=dp/dph) if mode == 'debug' else '' -}}
             {# Check if there is data, and find the right hour block #}
                 {%- if values | count >= dp and check -%}
                     {%- if mode == 'split' or mode == 'debug' -%}
