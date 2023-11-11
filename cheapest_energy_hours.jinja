@@ -42,10 +42,9 @@
 {%- macro cheapest_energy_hours(
                                     sensor,
                                     value_on_error,
-                                    end,
                                     hours=1,
-                                    look_ahead_minutes=5,
-                                    start=today_at(),
+                                    start='00:00',
+                                    end='00:00',
                                     attr_today='raw_today',
                                     attr_tomorrow='raw_tomorrow',
                                     attr_all='prices',
@@ -57,6 +56,7 @@
                                     include_tomorrow=false,
                                     lowest=true,
                                     look_ahead=false,
+                                    look_ahead_minutes=5,
                                     precision=5,
                                     price_factor=1,
                                     no_weight_points=1,
@@ -79,19 +79,35 @@
             {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default(attr_today, true) -%}
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
             {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true) -%}
-        {# determine start and end of dataset #}
-            {%- set start = start | as_datetime if start is not datetime and start | as_datetime is not none else start -%}
-            {%- set start = start if start is datetime else today_at(start) if start is defined else today_at() -%}
-            {%- set start = start + timedelta(days=1) if not include_today and start.date() == now().date() else start -%}
-            {%- set n = today_at((now() + timedelta(hours=(1 if now().minute > look_ahead_minutes |int(5) else 0))).strftime('%H:00')) -%}
-            {%- set start = n if look_ahead and start < n else start -%}
-            {%- set end = today_at() + timedelta(days=2 if include_tomorrow else 1) if end is not defined or end in ['00:00', '0:00', '0:0'] else end -%}
-            {%- set end = end | as_datetime if end is not datetime and end | as_datetime is not none else end -%}
-            {%- set end = end if end is datetime else (today_at(end) + timedelta(days=1 if include_tomorrow else 0)) -%}
-            {%- set start, end = start | as_local, end | as_local -%}
+        {# convert start and end input to local datetime #}
+            {# start #}
+            {%- set day = timedelta(days=1) -%}
+            {%- if start is datetime -%}
+                {%- set start = start | as_local -%}
+            {%- elif start | as_datetime is not none -%}
+                {%- set start = start | as_datetime | as_local -%}
+            {%- else -%}
+                {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
+                {%- set start = start if include_today else start + day -%}
+                {%- if look_ahead -%}
+                    {%- set n = now().replace(microsecond=0, second=0, minute=0) -%}
+                    {%- set n = n + timedelta(hours=1) if now().minute > look_ahead_minutes else n -%}
+                    {%- set start = [n, start] | max -%}
+                {%- endif -%}
+            {%- endif -%}
+            {# end #}
+            {%- if end is datetime -%}
+                {%- set end = end | as_local -%}
+            {%- elif end | as_datetime is not none -%}
+                {%- set end = end | as_datetime | as_local -%}
+            {%- else -%}
+                {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
+                {%- set end = end + day if end == today_at() else end -%}
+                {%- set end = end + day if include_tomorrow else end -%}
+            {%- endif -%}
         {# set empty lists if data is not requires becasue of include parameters #}
-            {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + timedelta(days=1)) | default([], true) -%}
-            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end >= today_at() + timedelta(days=1)) | default([], true) -%}
+            {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + day) | default([], true) -%}
+            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end >= today_at() + day) | default([], true) -%}
         {%- set data = (today + tomorrow) or state_attr(sensor, attr_all) | default([], true) -%}
     {# Try to find the right time_key and value_key if provided parameters are not found #}
         {%- if data[0] | default is mapping -%}
@@ -103,7 +119,7 @@
                             | list
                 -%}
                 {%- set tk_value = tk_list[0][1] | string if tk_list else '' -%}
-                {%- set yd, td, tm = (now() - timedelta(days=1)).date() | string, now().date() | string, (now() + timedelta(days=1)).date() | string -%}
+                {%- set yd, td, tm = (now() - day).date() | string, now().date() | string, (now() + day).date() | string -%}
                 {%- set tk_valid = tk_value and (yd in tk_value or td in tk_value or tm in tk_value) -%}
                 {%- set time_key = tk_list[0][0] if tk_valid else time_key -%}
             {%- endif -%}
