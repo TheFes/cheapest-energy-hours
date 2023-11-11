@@ -274,6 +274,7 @@
                                     )
             -%}
             {%- set set_by_macro = dict(macro_input.items() | reject('in', user_input.items())) -%}
+            {%- set defaults_used = dict(defaults.items() | select('in', macro_input.items()) | select('in', user_input.items()))%}
             {%- set data_used = dict(today_count=today | count, tomorrow_count = tomorrow | count, all_count = all | count, data_count = data | count)%}
         {%- endif -%}
     {# Return error messages for input #}
@@ -292,7 +293,7 @@
         {%- if errors | count > 0 and not debug -%}
             {{- value_on_error if use_voe else '{} error{}: {}'.format(errors | count, 's' if errors | count > 1, errors | join(', ')) -}}
         {%- elif errors | count > 0 -%}
-            {{- dict(non_default_user_input=non_default, set_by_macro=set_by_macro, data_used=data_used, errors=errors) -}}
+            {{- dict(non_default_user_input=non_default, set_by_macro=set_by_macro, defaults_used=defaults_used, data_used=data_used, errors=errors) -}}
         {# no error - continue with macro #}
         {%- else -%}
             {# Rebuild data from sensor to generic format #}
@@ -337,7 +338,7 @@
                 {%- set check = check_list[1] % check_list[0] == 0 -%}
             {# debugging data #}
                 {%- if debug -%}
-                    {%- set datapoints_used = dict(datapoins=dp, datapoints_hour=dph, dp_minutes=datapoint_minutes, weidht_point_minutes=wp_minutes) -%}
+                    {%- set datapoints_used = dict(datapoins=dp, datapoints_hour=dph) -%}
                 {%- endif -%}
             {# Perform selection based on start and end on the data #}
                 {%- set values = new_data
@@ -412,7 +413,7 @@
                                     {%- endif -%}
                                 {%- endif -%}
                             {%- endfor -%}
-                            {%- set macro_output = (split.split + [ dict(total_hours=h | round(2), datapoints_per_hour=dph, datapoints=dp)]) | to_json -%}
+                            {%- set macro_output = split.split + [ dict(total_hours=h | round(2), datapoints_per_hour=dph, datapoints=dp)] -%}
                     {%- else -%}
                         {# create output for all modes #}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], is_now=false) -%}
@@ -464,7 +465,7 @@
                                                         datapoints_per_hour=dph,
                                                         hours=h | round(2),
                                                         datapoints=dp
-                                                    ) | to_json
+                                                    )
                                 -%}
                             {%- else -%}
                                 {%- set macro_output = output[mode] -%}
@@ -478,7 +479,19 @@
                     -%}
                     {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
                 {%- endif -%}
-                {%- set dict_add =  dict(values_count=values|count) -%}
-                {{ macro_output if not debug else dict(non_default_user_input=non_default, set_by_macro=set_by_macro, data_used=dict(data_used, **dict_add), output=macro_output) -}}
+                {%- if debug -%}
+                    {%- set dict_add = dict(values_count=values|count, datapoints_source=datapoints_source, datapoints_used=datapoints_used) -%}
+                    {{- dict(
+                                non_default_user_input=non_default,
+                                set_by_macro=set_by_macro,
+                                defaults_used=defaults_used,
+                                data_used=dict(data_used, **dict_add),
+                                output=macro_output
+                            ) | to_json
+                    -}}
+                {%- else -%}
+                    {%- set macro_output = macro_output | to_json if mode in ['split', 'all'] else macro_outpu -%}
+                    {{- macro_output  -}}
+                {%- endif -%}
         {%- endif -%}
 {%- endmacro -%}
