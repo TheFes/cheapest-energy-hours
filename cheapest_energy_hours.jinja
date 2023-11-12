@@ -8,6 +8,37 @@
     {%- endif -%}
 {%- endmacro -%}
 
+{%- set n = now().replace(microsecond=0) -%}
+{%- set seconds = n.minute * 60 + n.second -%}
+{%- macro _div_calc(seconds, hours, datapoint_per_hour, before=false) -%}
+    {%- set div_list = [3600, 1800, 1200, 900, 720, 600, 300] -%}
+    {%- set ns = namespace(div_reject=[]) -%}
+    {%- for div in div_list -%}
+        {%- set check_list = [3600/datapoints_per_hour | default(1), div] | sort -%}
+        {%- set check = check_list[1] % check_list[0] == 0 -%}
+        {%- if not check -%}
+            {%- set ns.div_reject = ns.div_reject + [div] -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- set div_list = div_list | reject('in', ns.div_reject) | list -%}
+    {%- set ns = namespace(r=3600, wp=1, h=h | default(1)) %} 
+    {%- for div in div_list %}
+        {%- if seconds % div == 0 -%}
+            {%- set remain = 0 -%}
+        {%- elif not before -%}
+            {%- set remain = div - seconds % div -%}
+        {%- else -%}
+            {%- set remain = seconds - (seconds // div) * div -%}
+        {%- endif -%}
+        {%- if remain < ns.r -%}
+            {%- set ns.r = remain -%}
+            {%- set ns.wp = (3600 / div) | int -%}
+            {%- set ns.h = ((h | default(1) * 3600) / (3600 / ns.wp)) | round(0, 'ceil') * div / 3600 -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {{- [ns.wp, ns.h, ns.r] | join('|') -}}
+{%- endmacro -%}
+
 {%- macro _find_sensor(attr_today, attr_tomorrow) -%}
     {%- set price_sensors = states.sensor | selectattr('attributes.'~attr_today, 'defined') | selectattr('attributes.'~attr_tomorrow, 'defined') | map(attribute='entity_id') | list -%}
     {%- set price_sensor = namespace(id=none, data_count=0) -%}
@@ -73,7 +104,6 @@
                                     include_tomorrow=false,
                                     lowest=true,
                                     look_ahead=false,
-                                    look_ahead_minutes=5,
                                     precision=5,
                                     price_factor=1,
                                     no_weight_points=none,
@@ -82,7 +112,8 @@
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots',
                                     datapoints_per_hour=1,
-                                    debug=false
+                                    debug=false,
+                                    look_ahead_minutes='depreciated'
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now'] -%}
     {# set input for debugging #}
@@ -104,7 +135,6 @@
                                         include_tomorrow=false,
                                         lowest=true,
                                         look_ahead=false,
-                                        look_ahead_minutes=5,
                                         precision=5,
                                         price_factor=1,
                                         no_weight_points=none,
@@ -132,7 +162,6 @@
                                         include_tomorrow=include_tomorrow,
                                         lowest=lowest,
                                         look_ahead=look_ahead,
-                                        look_ahead_minutes=look_ahead_minutes,
                                         precision=precision,
                                         price_factor=price_factor,
                                         no_weight_points=no_weight_points,
@@ -163,6 +192,7 @@
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
             {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true) -%}
         {# convert start and end input to local datetime #}
+            {%- set n = now().replace(microsecond=0) -%}
             {# start #}
             {%- set day = timedelta(days=1) -%}
             {%- if start is datetime -%}
@@ -173,11 +203,13 @@
                 {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
                 {%- set start = start if include_today else start + day -%}
                 {%- if look_ahead -%}
-                    {%- set n = now().replace(microsecond=0, second=0, minute=0) -%}
-                    {%- set n = n + timedelta(hours=1) if now().minute > look_ahead_minutes else n -%}
                     {%- set start = [n, start] | max -%}
                 {%- endif -%}
             {%- endif -%}
+            {%- set seconds = start.minute * 60 + start.second -%}
+            {%- set div_result = _div_calc(seconds, 1, 1, before=true).split('|') | map('float') | list -%} 
+            {%- set start = start - timedelta(seconds=div_result[2] | int) -%}
+            {%- set start_dph = div_result[0] -%}
             {# end #}
             {%- if end is datetime -%}
                 {%- set end = end | as_local -%}
@@ -188,6 +220,10 @@
                 {%- set end = end + day if end == today_at() else end -%}
                 {%- set end = end + day if include_tomorrow else end -%}
             {%- endif -%}
+            {%- set seconds = end.minute * 60 + end.second -%}
+            {%- set div_result = _div_calc(seconds, 1, 1).split('|') | map('float') | list -%} 
+            {%- set end = end + timedelta(seconds=div_result[2] | int) -%}
+            {%- set end_dph = div_result[0] -%}
         {# set empty lists if data is not requires becasue of include parameters #}
             {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + day) | default([], true) -%}
             {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end >= today_at() + day) | default([], true) -%}
@@ -231,7 +267,7 @@
             -%}
         {# calculate no_weight_points based on hour input #}
             {%- set minutes = (h % 1 * 60) | round(0) -%}
-            {%- set div_list = [60, 30, 20, 15, 12, 10] -%}
+            {%- set div_list = [60, 30, 20, 15, 12, 10, 5] -%}
             {%- set ns = namespace(div_reject=[]) -%}
             {%- for div in div_list -%}
                 {%- set check_list = [60/datapoints_per_hour, div] | sort -%}
@@ -248,10 +284,11 @@
                     {%- set ns.r = remain -%}
                     {%- set ns.wp = (60 / div) | int -%}
                     {%- set ns.h = ((h * 60) / (60 / ns.wp)) | round(0, 'ceil') * div / 60 -%}
-                {%- endif -%}
+                {%- endif -%}{%- set start_dph = div_result[0] -%}
             {%- endfor -%} 
             {%- set h = ns.h -%}
-            {%- set no_weight_points = no_weight_points if no_weight_points  is not none else ns.wp -%}
+        {# set number of weight points based on all input #}
+            {%- set no_weight_points = no_weight_points if no_weight_points is not none else [ns.wp, start_dph, end_dph] | max -%}
             {%- set w = [1] * (h * no_weight_points) | round(0) | int if w is none and no_weight_points  is not none else w -%}
         {# set number of hours based on weight points in case hours setting is not provided #}
             {%- set h_wp = (w | count / no_weight_points) | round(0, 'ceil') | int if w else h -%}
@@ -271,7 +308,7 @@
             {%- set macro_input = dict(
                                         sensor=sensor,
                                         value_on_error= value_on_error | default(none),
-                                        hours=hours,
+                                        hours=h,
                                         start=start.isoformat() if start is datetime else start,
                                         end=end.isoformat() if end is datetime else end,
                                         attr_today=attr_today,
@@ -285,7 +322,6 @@
                                         include_tomorrow=include_tomorrow,
                                         lowest=lowest,
                                         look_ahead=look_ahead,
-                                        look_ahead_minutes=look_ahead_minutes,
                                         precision=precision,
                                         price_factor=price_factor,
                                         no_weight_points=no_weight_points,
