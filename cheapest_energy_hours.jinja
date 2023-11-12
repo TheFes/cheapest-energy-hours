@@ -112,6 +112,7 @@
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots',
                                     datapoints_per_hour=1,
+                                    split=false,
                                     debug=false,
                                     look_ahead_minutes='depreciated'
                                 ) -%}
@@ -142,6 +143,7 @@
                                         program=none,
                                         plot_sensor='sensor.energy_plots',
                                         plot_attr='energy_plots',
+                                        split=false,
                                         datapoints_per_hour=1
                                     )
             -%}
@@ -169,6 +171,7 @@
                                         program=program,
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
+                                        split=split,
                                         datapoints_per_hour=datapoints_per_hour
                                     )
             -%}
@@ -307,7 +310,6 @@
         {%- if debug -%}
             {%- set macro_input = dict(
                                         sensor=sensor,
-                                        value_on_error= value_on_error | default(none),
                                         hours=h,
                                         start=start.isoformat() if start is datetime else start,
                                         end=end.isoformat() if end is datetime else end,
@@ -316,20 +318,9 @@
                                         attr_all=attr_all,
                                         time_key=time_key,
                                         value_key=value_key,
-                                        mode=mode,
-                                        time_format=time_format,
-                                        include_today=include_today,
-                                        include_tomorrow=include_tomorrow,
-                                        lowest=lowest,
-                                        look_ahead=look_ahead,
-                                        precision=precision,
-                                        price_factor=price_factor,
                                         no_weight_points=no_weight_points,
                                         weight=weight,
-                                        program=program,
-                                        plot_sensor=plot_sensor,
-                                        plot_attr=plot_attr,
-                                        datapoints_per_hour=datapoints_per_hour
+                                        split=split
                                     )
             -%}
             {%- set set_by_macro = dict(macro_input.items() | reject('in', user_input.items())) -%}
@@ -410,7 +401,8 @@
                 -%}
             {# Check if there is data, and find the right hour block #}
                 {%- if values | count >= dp and check -%}
-                    {%- if mode == 'split' -%}
+                    {%- set split = mode == 'split' or split -%}
+                    {%- if split -%}
                         {# sort values and take out hours needed #}
                             {%- set prices = (values | sort(attribute='value') | map(attribute='value') | list)[:dp] -%}
                             {%- set values = values | selectattr('value', 'in', prices) | sort(attribute='time') | list -%}
@@ -441,7 +433,7 @@
                                     {%- set split.prices = [values[0].value] -%}
                                 {%- elif values[loop.index0 - 1].time != dt - timedelta(hours=1/dph) -%}
                                     {%- set is_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
-                                    {%- set prices = split.prices if split.prices | reject('eq', split.prices[0]) | list | count > 0 else [split.prices[0]] -%}
+                                    {%- set prices = split.prices -%}
                                     {%- set split.split = split.split + [
                                                                             dict(
                                                                                     start=_format_date(split.start, time_format),
@@ -460,7 +452,7 @@
                                     {%- set split.prices = split.prices + [values[loop.index0].value] -%}
                                     {%- if loop.last -%}
                                         {%- set is_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
-                                        {%- set prices = split.prices if split.prices | reject('eq', split.prices[0]) | list | count > 0 else [split.prices[0]] -%}
+                                        {%- set prices = split.prices -%}
                                         {%- set split.split = split.split + [
                                                                                 dict(
                                                                                         start=_format_date(split.start, time_format),
@@ -474,7 +466,29 @@
                                     {%- endif -%}
                                 {%- endif -%}
                             {%- endfor -%}
-                            {%- set macro_output = split.split + [ dict(total_hours=h | round(2), datapoints_per_hour=dph, datapoints=dp)] -%}
+                            {%- set split_all = split.split + [ dict(total_hours=h | round(2), datapoints_per_hour=dph, datapoints=dp)] -%}
+                            {%- set pr = precision | default(5) -%}
+                            {%- set list = split_all | selectattr('prices', 'defined') | map(attribute='prices') | sum(start=[]) -%}
+                            {%- set min, max = list | min, list | max -%}
+                            {%- set index_min, index_max = list.index(min), list.index(max) -%}
+                            {%- set time_min = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', min) | map(attribute='start') | join %}
+                            {%- set time_max = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', max) | map(attribute='start') | join %}
+                            {%- set is_now = time_max | selectattr('is_now', 'defined') | selectattr('is_now') | list | count > 0 %}
+                            {%- set output = dict(
+                                                    list = list | map('round', pr) | list,
+                                                    min = min | round(pr),
+                                                    max = max | round(pr),
+                                                    average = list | average | round(pr),
+                                                    weighted_average = list | average | round(pr), 
+                                                    start = _format_date(as_datetime(split_all[0].start), time_format),
+                                                    end = _format_date(as_datetime(split_all[-2].end), time_format),
+                                                    time_min = _format_date(as_datetime(time_min), time_format | default(none)),
+                                                    time_max = _format_date(as_datetime(time_max), time_format | default(none)),
+                                                    is_now = is_now,
+                                                    all = split_all
+                                                )
+                            -%}
+                            {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
                     {%- else -%}
                         {# create output for all modes #}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], is_now=false) -%}
