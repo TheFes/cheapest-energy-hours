@@ -8,8 +8,6 @@
     {%- endif -%}
 {%- endmacro -%}
 
-{%- set n = now().replace(microsecond=0) -%}
-{%- set seconds = n.minute * 60 + n.second -%}
 {%- macro _div_calc(seconds, hours, datapoint_per_hour, before=false) -%}
     {%- set div_list = [3600, 1800, 1200, 900, 720, 600, 300] -%}
     {%- set ns = namespace(div_reject=[]) -%}
@@ -111,9 +109,9 @@
                                     program=none,
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots',
-                                    datapoints_per_hour=1,
                                     split=false,
                                     debug=false,
+                                    datapoints_per_hour='depreciated',
                                     look_ahead_minutes='depreciated'
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now'] -%}
@@ -143,8 +141,7 @@
                                         program=none,
                                         plot_sensor='sensor.energy_plots',
                                         plot_attr='energy_plots',
-                                        split=false,
-                                        datapoints_per_hour=1
+                                        split=false
                                     )
             -%}
             {%- set user_input = dict(
@@ -171,8 +168,7 @@
                                         program=program,
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
-                                        split=split,
-                                        datapoints_per_hour=datapoints_per_hour
+                                        split=split
                                     )
             -%}
             {%- set non_default = dict(user_input.items() | reject('in', defaults.items())) -%}
@@ -189,11 +185,25 @@
         {# Check if data is available and as expected #}
             {%- set today_check = not include_today or today is list and today and today[0] is mapping -%}
             {%- set tomorrow_check = not include_tomorrow or tomorrow is list and today and today[0] is mapping -%}
-            {%- set all_check = not (today_check and tomorrow_check) and all is list and today and today[0] is mapping -%}
+            {%- set all_check = not (today_check and tomorrow_check) and all is list and all and all[0] is mapping -%}
         {# try to find correct attributes if no valid data was found #}
-            {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default(attr_today, true) -%}
-            {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default(attr_tomorrow, true)  -%}
-            {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default(attr_all, true) -%}
+            {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default('attr_today_not_found', true) -%}
+            {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default('attr_tomorrow_not_found', true)  -%}
+            {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default('attr_all_not_found', true) -%}
+        {# set set dataset with all attributes #}
+            {%- set today = state_attr(sensor, attr_today) | default([], true) -%}
+            {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
+            {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
+            {%- set data = (today + tomorrow) or all -%}
+        {# Rebuild data from sensor to generic format #}
+            {%- set rebuild = namespace(data=[]) -%}
+            {%- for item in data -%}
+                {%- set time = item[time_key] -%}
+                {%- set time = as_datetime(time) if time is string else time -%}
+                {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
+            {%- endfor -%}
+            {%- set data = rebuild.data | sort(attribute='time') -%}
+            {%- set datapoints_per_hour = int(3600 / (data[1].time - data[0].time).total_seconds()) if data | count > 1 else 1 -%}
         {# convert start and end input to local datetime #}
             {%- set n = now().replace(microsecond=0) -%}
             {# start #}
@@ -227,11 +237,6 @@
             {%- set div_result = _div_calc(seconds, 1, 1).split('|') | map('float') | list -%} 
             {%- set end = end + timedelta(seconds=div_result[2] | int) -%}
             {%- set end_dph = div_result[0] -%}
-        {# set empty lists if data is not requires becasue of include parameters #}
-            {%- set today = (state_attr(sensor, attr_today) if start <= today_at() + day) | default([], true) -%}
-            {%- set tomorrow = (state_attr(sensor, attr_tomorrow) if end >= today_at() + day) | default([], true) -%}
-            {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
-            {%- set data = (today + tomorrow) or all -%}
         {# Try to find the right time_key and value_key if provided parameters are not found #}
             {%- if data[0] | default is mapping -%}
                 {%- if time_key not in data[0] %}
@@ -348,33 +353,25 @@
             {{- dict(non_default_user_input=non_default, set_by_macro=set_by_macro, defaults_used=defaults_used, data_used=data_used, errors=errors) -}}
         {# no error - continue with macro #}
         {%- else -%}
-            {# Rebuild data from sensor to generic format #}
-                {%- set rebuild = namespace(data=[]) -%}
-                {%- for item in data -%}
-                    {%- set time = item[time_key] -%}
-                    {%- set time = as_datetime(time) if time is string else time -%}
-                    {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
-                {%- endfor -%}
-                {%- set new_data = rebuild.data -%}
             {# determine how many data points per hour are used #}
-                {%- set dph = 3600 / (new_data[1].time - new_data[0].time).seconds -%}
+                {%- set dph = 3600 / (data[1].time - data[0].time).seconds -%}
                 {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
                 {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
             {# debugging data #}
                 {%- if debug -%}
-                    {%- set datapoints_source = dict(datapoins=dp, datapoints_hour=dph) -%}
+                    {%- set datapoints_source = dict(datapoints=dp, datapoints_hour=dph) -%}
                 {%- endif -%}
             {# rebuild data again if weight_points are provided #}
                 {%- if wp_minutes != dp_minutes and w is not none -%}
                     {%- if dp_minutes > wp_minutes -%}
                         {%- set rebuild = namespace(data=[]) -%}
-                        {%- for v in (new_data * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
+                        {%- for v in (data * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
                             {%- set t = v.time -%}
                             {%- set t = t + timedelta(minutes=(wp_minutes*(loop.index0 % int(dp_minutes/wp_minutes)))) -%}
                             {%- set rebuild.data = rebuild.data + [ dict(time=t, value=v.value) ] -%}
                         {%- endfor -%}
-                        {%- set new_data = rebuild.data -%}
-                        {%- set dph = 3600 / (new_data[1].time - new_data[0].time).seconds -%}
+                        {%- set data = rebuild.data -%}
+                        {%- set dph = 3600 / (data[1].time - data[0].time).seconds -%}
                         {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
                         {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
                     {%- else -%}
@@ -390,10 +387,10 @@
                 {%- set check = check_list[1] % check_list[0] == 0 -%}
             {# debugging data #}
                 {%- if debug -%}
-                    {%- set datapoints_used = dict(datapoins=dp, datapoints_hour=dph) -%}
+                    {%- set datapoints_used = dict(datapoints=dp, datapoints_hour=dph) -%}
                 {%- endif -%}
             {# Perform selection based on start and end on the data #}
-                {%- set values = new_data
+                {%- set values = data
                                     | selectattr('time', '>=', start)
                                     | selectattr('time', '<', end)
                                     | selectattr('value', 'is_number')
