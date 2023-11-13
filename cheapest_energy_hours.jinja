@@ -1,4 +1,4 @@
-{%- set _version = '5.0.0b3' -%}
+{%- set _version = '5.0.0b4' -%}
 
 {# sub-macro to format datetimes to selected time_format #}
 {%- macro _format_date(datetime, time_format) -%}
@@ -363,6 +363,8 @@
         {%- endif -%}
         {%- set data = data | default(none) -%}
     {# Return error messages for input #}
+        {%- set start_end = start > end -%}
+        {%- set end_start = ((end-start).total_seconds() / 3600) | round(3) -%}
         {%- set errors = [
                             'No valid sensor found' if not sensor | has_value,
                             'No valid data in {}'.format(sensor) if data == [],
@@ -373,14 +375,25 @@
                             'Boolean input expected for include_tomorrow, "{}" can not be processed as a boolean'.format(include_tomorrow) if include_tomorrow | bool('') is not boolean,
                             'Boolean input expected for look_ahead, "{}" can not be processed as a boolean'.format(look_ahead) if look_ahead | bool('') is not boolean,
                             'Boolean input expected for lowest, "{}" can not be processed as a boolean'.format(lowest) if lowest | bool('') is not boolean,
-                            'Selected program "{}" is not available or has no data'.format(program) if program is not none and w is none
+                            'Selected program "{}" is not available or has no data'.format(program) if program is not none and w is none,
+                            'Selected start parameter is after the end parameter' if start_end,
+                            '{} hours between start and end, where {} hours are required'.format(end_start, h | round(3)) if not start_end and end_start < h
                         ] | select() | list
         -%}
         {%- set use_voe = value_on_error is defined -%}
         {%- if errors | count > 0 and not debug -%}
             {{- value_on_error if use_voe else '{} error{}: {}'.format(errors | count, 's' if errors | count > 1, errors | join(', ')) -}}
         {%- elif errors | count > 0 -%}
-            {{- dict(version=_version, non_default_user_input=non_default, set_by_macro=set_by_macro, defaults_used=defaults_used, data_used=data_used, errors=errors | join(', ')) -}}
+            {{- dict(
+                    version=_version,
+                    output=errors | join(', '),
+                    error=true,
+                    non_default_user_input=non_default,
+                    set_by_macro=set_by_macro,
+                    defaults_used=defaults_used,
+                    data_used=data_used
+                    )
+            -}}
         {# no error - continue with macro #}
         {%- else -%}
             {# determine how many data points per hour are used #}
@@ -583,11 +596,12 @@
                     {%- set dict_add = dict(values_count=values|count, datapoints_source=datapoints_source, datapoints_used=datapoints_used) -%}
                     {{- dict(
                                 version=_version,
+                                output=macro_output,
+                                error=false,
                                 non_default_user_input=non_default,
                                 set_by_macro=set_by_macro,
                                 defaults_used=defaults_used,
-                                data_used=dict(data_used, **dict_add),
-                                output=macro_output
+                                data_used=dict(data_used, **dict_add)
                             ) | to_json
                     -}}
                 {%- else -%}
