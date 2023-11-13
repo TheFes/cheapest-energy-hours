@@ -1,3 +1,6 @@
+{# version 5.0.0b1 #}
+
+{# sub-macro to format datetimes to selected time_format #}
 {%- macro _format_date(datetime, time_format) -%}
     {%- set datetime = datetime | as_local -%}
     {%- if time_format is not none -%}
@@ -8,35 +11,7 @@
     {%- endif -%}
 {%- endmacro -%}
 
-{%- macro _div_calc(seconds, hours, dph, before=false) -%}
-    {%- set div_list = [3600, 1800, 1200, 900, 720, 600, 300] -%}
-    {%- set ns = namespace(div_reject=[]) -%}
-    {%- for div in div_list -%}
-        {%- set check_list = [3600/dph | default(1), div] | sort -%}
-        {%- set check = check_list[1] % check_list[0] == 0 -%}
-        {%- if not check -%}
-            {%- set ns.div_reject = ns.div_reject + [div] -%}
-        {%- endif -%}
-    {%- endfor -%}
-    {%- set div_list = div_list | reject('in', ns.div_reject) | list -%}
-    {%- set ns = namespace(r=3600, wp=1, h=hours | default(1)) %} 
-    {%- for div in div_list %}
-        {%- if seconds % div == 0 -%}
-            {%- set remain = 0 -%}
-        {%- elif not before -%}
-            {%- set remain = div - seconds % div -%}
-        {%- else -%}
-            {%- set remain = seconds - (seconds // div) * div -%}
-        {%- endif -%}
-        {%- if remain < ns.r -%}
-            {%- set ns.r = remain -%}
-            {%- set ns.wp = (3600 / div) | int -%}
-            {%- set ns.h = ((hours * 3600) / (3600 / ns.wp)) | round(0, 'ceil') * div / 3600 -%}
-        {%- endif -%}
-    {%- endfor -%}
-    {{- [ns.wp, ns.h, ns.r] | join('|') -}}
-{%- endmacro -%}
-
+{# sub-macro to find the right sensor #}
 {%- macro _find_sensor(attr_today, attr_tomorrow) -%}
     {%- set price_sensors = states.sensor | selectattr('attributes.'~attr_today, 'defined') | selectattr('attributes.'~attr_tomorrow, 'defined') | map(attribute='entity_id') | list -%}
     {%- set price_sensor = namespace(id=none, data_count=0) -%}
@@ -54,6 +29,7 @@
     {{- price_sensor.id -}}
 {%- endmacro-%}
 
+{# sub macro to find the right attriubues #}
 {%- macro _find_attr(sensor, type) -%}
     {%- set td = now().date() | string -%}
     {%- set tm = (now() + timedelta(days=1)).date() | string -%}
@@ -85,6 +61,41 @@
     {%- endif -%}
 {%- endmacro -%}
 
+{# sub-macro to caluclate hours and times based on datatpoints per hour #}
+{%- macro _div_calc(seconds, hours, dph, wph, before=false, mode='dph', div_list=[3600, 1800, 1200, 900, 720, 600, 300]) -%}
+    {# check against dph provided #}
+        {%- set div_list = div_list if wph is not defined or wph is none else [3600/wph] -%}
+        {%- set ns = namespace(div_reject=[]) -%}
+        {%- for div in div_list -%}
+            {%- set check_list = [3600/dph | default(1), div] | sort -%}
+            {%- set check = check_list[1] % check_list[0] == 0 -%}
+            {%- if not check -%}
+                {%- set ns.div_reject = ns.div_reject + [div] -%}
+            {%- endif -%}
+        {%- endfor -%}
+        {%- set div_list = div_list | reject('in', ns.div_reject) | list -%}
+    {# find best dph setting #}
+        {%- set ns = namespace(r=0, wp=dph | default(1), h=hours | default(1)) %} 
+        {%- for div in div_list %}
+            {%- if seconds % div == 0 -%}
+                {%- set remain = 0 -%}
+            {%- elif not before -%}
+                {%- set remain = div - seconds % div -%}
+            {%- else -%}
+                {%- set remain = seconds - (seconds // div) * div -%}
+            {%- endif -%}
+            {%- if remain < ns.r or loop.first -%}
+                {%- set ns.r = remain -%}
+                {%- set ns.wp = (3600 / div) | int -%}
+                {%- set ns.h = ((hours * 3600) / (3600 / ns.wp)) | round(0, 'ceil') * div / 3600 -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {# output value #}
+        {%- set output = dict(dph=ns.wp, hours=ns.h, remain=ns.r)%}
+        {{- output[mode] -}}
+{%- endmacro -%}
+
+{# main macro #}
 {%- macro cheapest_energy_hours(
                                     sensor,
                                     value_on_error,
@@ -148,8 +159,8 @@
                                         sensor=sensor | default(none),
                                         value_on_error= value_on_error | default(none),
                                         hours=hours | default(none) | round(3, default=none),
-                                        start=start,
-                                        end=end,
+                                        start=start.isoformat() if start is datetime else start,
+                                        end=end.isoformat() if end is datetime else end,
                                         attr_today=attr_today,
                                         attr_tomorrow=attr_tomorrow,
                                         attr_all=attr_all,
@@ -178,10 +189,6 @@
             {%- set sensor = _find_sensor(attr_today, attr_tomorrow) -%}
         {%- endif -%}
         {%- if sensor | has_value -%}
-        {# Get data out of the selected entity, find right attributes if needed #}
-            {%- set today = state_attr(sensor, attr_today) -%}
-            {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
-            {%- set all = state_attr(sensor, attr_all) -%}
         {# Check if data is available and as expected #}
             {%- set today_check = not include_today or today is list and today and today[0] is mapping -%}
             {%- set tomorrow_check = not include_tomorrow or tomorrow is list and today and today[0] is mapping -%}
@@ -190,54 +197,15 @@
             {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default('attr_today_not_found', true) -%}
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default('attr_tomorrow_not_found', true)  -%}
             {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default('attr_all_not_found', true) -%}
+        {# Get data out of the selected entity, find right attributes if needed #}
+            {%- set today = state_attr(sensor, attr_today) -%}
+            {%- set tomorrow = state_attr(sensor, attr_tomorrow) -%}
+            {%- set all = state_attr(sensor, attr_all) -%}
         {# set set dataset with all attributes #}
             {%- set today = state_attr(sensor, attr_today) | default([], true) -%}
             {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
             {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
             {%- set data = (today + tomorrow) or all -%}
-        {# Rebuild data from sensor to generic format #}
-            {%- set rebuild = namespace(data=[]) -%}
-            {%- for item in data -%}
-                {%- set time = item[time_key] -%}
-                {%- set time = as_datetime(time) if time is string else time -%}
-                {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
-            {%- endfor -%}
-            {%- set data = rebuild.data | sort(attribute='time') -%}
-            {%- set dph = int(3600 / (data[1].time - data[0].time).total_seconds()) if data | count > 1 else 1 -%}
-        {# convert start and end input to local datetime #}
-            {%- set h = hours | default(1) | float(1) -%}
-            {%- set n = now().replace(microsecond=0) -%}
-            {# start #}
-            {%- set day = timedelta(days=1) -%}
-            {%- if start is datetime -%}
-                {%- set start = start | as_local -%}
-            {%- elif start | as_datetime is not none -%}
-                {%- set start = start | as_datetime | as_local -%}
-            {%- else -%}
-                {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
-                {%- set start = start if include_today else start + day -%}
-                {%- if look_ahead -%}
-                    {%- set start = [n, start] | max -%}
-                {%- endif -%}
-            {%- endif -%}
-            {%- set seconds = start.minute * 60 + start.second -%}
-            {%- set div_result = _div_calc(seconds, h, dph, before=true).split('|') | map('float') | list -%} 
-            {%- set start = start - timedelta(seconds=div_result[2] | int) -%}
-            {%- set start_dph = div_result[0] -%}
-            {# end #}
-            {%- if end is datetime -%}
-                {%- set end = end | as_local -%}
-            {%- elif end | as_datetime is not none -%}
-                {%- set end = end | as_datetime | as_local -%}
-            {%- else -%}
-                {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
-                {%- set end = end + day if end == today_at() else end -%}
-                {%- set end = end + day if include_tomorrow else end -%}
-            {%- endif -%}
-            {%- set seconds = end.minute * 60 + end.second -%}
-            {%- set div_result = _div_calc(seconds, h, dph).split('|') | map('float') | list -%} 
-            {%- set end = end + timedelta(seconds=div_result[2] | int) -%}
-            {%- set end_dph = div_result[0] -%}
         {# Try to find the right time_key and value_key if provided parameters are not found #}
             {%- if data[0] | default is mapping -%}
                 {%- if time_key not in data[0] %}
@@ -263,33 +231,100 @@
                 {%- endif -%}
             {%- endif -%}
             {%- set use_voe = value_on_error is defined -%}
-        {# set weight points based on energy plot sensor #}
-            {%-if program is not none-%}
-                {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
-                {%- set weight = plot_data.get(program, {}).get('data') | default(none, true) -%}
-                {%- set no_weight_points = plot_data.get(program, {}).get('no_weight_points', 1) -%}
-            {%- endif -%}
-            {%- set w = weight | map('float', none) | reject('none') | list
-                        if weight is list
-                        else none
-            -%}
-        {# calculate no_weight_points based on hour input #}
-            {%- set seconds = (h % 1 * 3600) | round(0) -%}
-            {%- set div_result = _div_calc(seconds, h, dph).split('|') | map('float') | list -%} 
-            {%- set h_dph, h = div_result[:2] -%}
-        {# set number of weight points based on all input #}
-            {%- set no_weight_points = no_weight_points if no_weight_points is not none else [h_dph, start_dph, end_dph] | max -%}
-            {%- set w = [1] * (h * no_weight_points) | round(0) | int if w is none and no_weight_points  is not none else w -%}
-        {# set number of hours based on weight points in case hours setting is not provided #}
-            {%- set h_wp = (w | count / no_weight_points) | round(0, 'ceil') | int if w else h -%}
-            {%- set h = h if hours is defined else h_wp -%}
-        {# set weight points based on number of hours (either add zeros, or remove unneeded part) #}
-            {%- set no_weight_points = no_weight_points | default(1, true) -%}
-            {%- if w is not none -%}
-                {%- if h_wp <= h -%}
-                    {%- set w = w + [0] * int(h*no_weight_points - w | count) -%}
+            {%- set time_key_check, value_key_check = time_key, value_key -%}
+        {# proceed if time_key and value_key are found #}
+            {%- if data | count > 0 and data[0] is mapping and time_key in data[0] and value_key in data[0] -%}
+            {# Rebuild data from sensor to generic format #}
+                {%- set rebuild = namespace(data=[]) -%}
+                {%- for item in data -%}
+                    {%- set time = item[time_key] -%}
+                    {%- set time = as_datetime(time) if time is string else time -%}
+                    {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
+                {%- endfor -%}
+                {%- set data = rebuild.data | sort(attribute='time') -%}
+                {%- set dph = int(3600 / (data[1].time - data[0].time).total_seconds()) if data | count > 1 else 1 -%}
+                {%- set time_key_check, value_key_check = 'time', 'value' -%}
+            {# set weight points based on energy plot sensor #}
+                {%-if program is not none-%}
+                    {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
+                    {%- set program_false = program not in plot_data %}
+                    {%- set weight = plot_data.get(program, {}).get('data') | default(none, true) -%}
+                    {%- set weight = plot_data.get(program, {}).get('data') | default(none, true) -%}
+                    {%- set no_weight_points = plot_data.get(program, {}).get('no_weight_points', 1) -%}
+                {%- endif -%}
+                {%- set w = weight | map('float', 0) | list
+                            if weight is list
+                            else none
+                -%}
+            {# set number of hours based on weight points in case hours setting is not provided #}
+                {%- set h = (w | count / no_weight_points | default(1)) if w and hours is not defined else hours | default(1) | float(1) -%}
+            {# convert start and end input to local datetime #}
+                {%- set n = now().replace(microsecond=0) -%}
+                {# start #}
+                {%- set day = timedelta(days=1) -%}
+                {%- if start is datetime -%}
+                    {%- set start = start.replace(microsecond=0) | as_local -%}
+                {%- elif start | as_datetime is not none -%}
+                    {%- set start = as_datetime(start).replace(microsecond=0) | as_local -%}
                 {%- else -%}
-                    {%- set w = w[:int(h*no_weight_points)] -%}
+                    {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
+                    {%- set start = start if include_today else start + day -%}
+                    {%- if look_ahead -%}
+                        {%- set start = [n, start] | max -%}
+                    {%- endif -%}
+                {%- endif -%}
+                {%- set seconds = start.minute * 60 + start.second -%}
+                {%- set start_dph = _div_calc(seconds, h, dph, before=true) | int -%}
+                {# end #}
+                {%- if end is datetime -%}
+                    {%- set end = end | as_local -%}
+                {%- elif end | as_datetime is not none -%}
+                    {%- set end = end | as_datetime | as_local -%}
+                {%- else -%}
+                    {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
+                    {%- set end = end + day if end == today_at() else end -%}
+                    {%- set end = end + day if include_tomorrow else end -%}
+                {%- endif -%}
+                {%- set seconds = end.minute * 60 + end.second -%}
+                {%- set end_dph = _div_calc(seconds, h, dph) | int -%}
+            {# calculate dph based on hour input #}
+                {%- set seconds = (h % 1 * 3600) | round(0) -%}
+                {%- set h_dph = _div_calc(seconds, h, dph) | int -%}
+            {# set number of weight points based on all input #}
+                {%- set dph_list = [start_dph, end_dph, h_dph] | unique | reject('eq', 1) | list -%}
+                {%- if dph_list | count > 1 and 12 not in dph_list -%}
+                    {% 
+                        set dph_list = [12]
+                        if
+                            (6 in dph_list and (5 in dph_list or 4 in dph_list))
+                            or (5 in dph_list and (4 in dph_list or 3 in dph_list))
+                            or 4 in dph_list and 3 in dph_list
+                            or 3 in dph_list and 2 in dph_list
+                        else [dph_list]
+                    %}
+                {%- endif -%}
+            {# calculate start, end and h based on dph #}
+                {# h #}
+                    {%- set seconds = (h % 1 * 3600) | round(0) -%}
+                    {%- set h = _div_calc(seconds, h, dph, no_weight_points, mode='hours') | float -%}
+                {# start #}
+                    {%- set seconds = start.minute * 60 + start.second -%}
+                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=true, mode='remain') | int -%} 
+                    {%- set start = start - timedelta(seconds=remain) -%}
+                {# end #}
+                    {%- set seconds = end.minute * 60 + end.second -%}
+                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, mode='remain') | int -%} 
+                    {%- set end = end + timedelta(seconds=remain) -%}
+            {# set number of weight points based on all input #}
+                {%- set no_weight_points = no_weight_points if no_weight_points is not none else dph_list | max | int -%}
+                {%- set w = [1] * (h * no_weight_points) | round(0, 'ceil') | int if w is none and no_weight_points is not none else w -%}
+            {# set weight points based on number of hours (either add zeros, or remove unneeded part) #}
+                {%- if w is not none -%}
+                    {%- if w | count <= h * no_weight_points -%}
+                        {%- set w = w + [0] * int(h*no_weight_points - w | count) -%}
+                    {%- else -%}
+                        {%- set w = w[:int(h*no_weight_points)] -%}
+                    {%- endif -%}
                 {%- endif -%}
             {%- endif -%}
         {%- endif -%}
@@ -300,13 +335,25 @@
                                         hours=h | round(3),
                                         start=start.isoformat() if start is datetime else start,
                                         end=end.isoformat() if end is datetime else end,
+                                        value_on_error= value_on_error | default(none),
                                         attr_today=attr_today,
                                         attr_tomorrow=attr_tomorrow,
                                         attr_all=attr_all,
                                         time_key=time_key,
                                         value_key=value_key,
+                                        mode=mode,
+                                        time_format=time_format,
+                                        include_today=include_today,
+                                        include_tomorrow=include_tomorrow,
+                                        lowest=lowest,
+                                        look_ahead=look_ahead,
+                                        precision=precision,
+                                        price_factor=price_factor,
                                         no_weight_points=no_weight_points,
-                                        weight=weight,
+                                        weight=w,
+                                        program=program,
+                                        plot_sensor=plot_sensor,
+                                        plot_attr=plot_attr,
                                         split=split
                                     )
             -%}
@@ -319,14 +366,14 @@
         {%- set errors = [
                             'No valid sensor found' if not sensor | has_value,
                             'No valid data in {}'.format(sensor) if data == [],
-                            'Time key "{}" not found in data'.format(time_key) if data and time_key not in data[0],
-                            'Value key "{}" not found in data'.format(value_key) if data and value_key not in data[0],
+                            'Time key "{}" not found in data'.format(time_key) if data | count > 0 and time_key_check not in data[0],
+                            'Value key "{}" not found in data'.format(value_key) if data and value_key_check not in data[0],
                             'Invalid mode "{}" selected'.format(mode) if mode not in modes,
                             'Boolean input expected for include_today, "{}" can not be processed as a boolean'.format(include_today) if include_today | bool('') is not boolean,
                             'Boolean input expected for include_tomorrow, "{}" can not be processed as a boolean'.format(include_tomorrow) if include_tomorrow | bool('') is not boolean,
                             'Boolean input expected for look_ahead, "{}" can not be processed as a boolean'.format(look_ahead) if look_ahead | bool('') is not boolean,
                             'Boolean input expected for lowest, "{}" can not be processed as a boolean'.format(lowest) if lowest | bool('') is not boolean,
-                            'Selected program "{}" is not available or has no data'.format(program) if program is not none and w is none
+                            'Selected program "{}" is not available or has no data'.format(program) if program is not none and program_false
                         ] | select() | list
         -%}
         {%- if errors | count > 0 and not debug -%}
@@ -337,7 +384,7 @@
         {%- else -%}
             {# determine how many data points per hour are used #}
                 {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
-                {%- set dp_minutes, wp_minutes = 60 / dph, 60/no_weight_points -%}
+                {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
             {# debugging data #}
                 {%- if debug -%}
                     {%- set datapoints_source = dict(datapoints=dp, datapoints_hour=dph) -%}
