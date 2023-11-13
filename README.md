@@ -5,12 +5,6 @@
 
 A jinja macro to easily find the cheapest consecutive block of hours to know when to turn on your dryer
 
-- [Why this macro](#why-this-macro)
-- [How to install](#how-to-install)
-- [How to use](#how-to-use)
-- [Thanks to](#thanks-to)
-
-
 # Why this macro
 
 If your energy provider uses dynamic pricing, you might want to know when to turn on devices which consume a lot of power. It is relatively easy to find the lowest price on the day, but if it takes 3 hours for your dryer to complete, you might want to find the cheapest block of hours. It could be that the cheapest hour is not even in that block.
