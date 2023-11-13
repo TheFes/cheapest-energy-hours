@@ -207,6 +207,7 @@
             {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
             {%- set data = (today + tomorrow) or all -%}
         {# Try to find the right time_key and value_key if provided parameters are not found #}
+            {%- set day = timedelta(days=1) -%}
             {%- if data[0] | default is mapping -%}
                 {%- if time_key not in data[0] %}
                     {%- set tk_list =
@@ -261,7 +262,6 @@
             {# convert start and end input to local datetime #}
                 {%- set n = now().replace(microsecond=0) -%}
                 {# start #}
-                {%- set day = timedelta(days=1) -%}
                 {%- if start is datetime -%}
                     {%- set start = start.replace(microsecond=0) | as_local -%}
                 {%- elif start | as_datetime is not none -%}
