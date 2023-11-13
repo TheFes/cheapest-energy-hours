@@ -10,4 +10,5 @@ The information below explains how to use the macro in several sections, each se
 5. [Error handling](5-error_handling.md)
 6. [Examples](./6-examples.md)
 
+### NAVIGATION
 [NEXT: SOURCE SENSOR](./1-source_sensor.md)

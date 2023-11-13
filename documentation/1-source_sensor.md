@@ -33,4 +33,5 @@ The key used in the attributes of your integration for the price values
 {% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', attr_today="forecast_today", attr_tomorrow="prices_tomorrow", time_key="datetime", value_key="value") %}
 ```
 
+### NAVIGATION
 [PREVIOUS: CONTENTS](./0-how-to.md) || [NEXT: BASIC DATA](2-basic_data.md)
