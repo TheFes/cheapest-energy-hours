@@ -260,9 +260,9 @@
                 {%- set n = now().replace(microsecond=0) -%}
                 {# start #}
                 {%- if start is datetime -%}
-                    {%- set start = start | as_local -%}
+                    {%- set start = start.replace(microsecond=0) | as_local -%}
                 {%- elif start | as_datetime is not none -%}
-                    {%- set start = start | as_datetime | as_local -%}
+                    {%- set start = as_datetime(start).replace(microsecond=0) | as_local -%}
                 {%- else -%}
                     {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
                     {%- set start = start if include_today else start + day -%}
@@ -275,9 +275,9 @@
                 {%- set start_dph = _div_calc(seconds, h, dph, before=true) | int -%}
                 {# end #}
                 {%- if end is datetime -%}
-                    {%- set end = end | as_local -%}
+                    {%- set end = end.replace(microsecond=0) | as_local -%}
                 {%- elif end | as_datetime is not none -%}
-                    {%- set end = end | as_datetime | as_local -%}
+                    {%- set end = as_datetime(end).replace(microsecond=0) | as_local -%}
                 {%- else -%}
                     {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
                     {%- set end = end + day if end == today_at() else end -%}
