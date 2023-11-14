@@ -1,9 +1,9 @@
 # 1. SOURCE SENSOR
 
-These parameters are used to determine where the source data can be found. If you use the [Nordpool integration](https://github.com/custom-components/nordpool), or an integration which uses the same attributes, you don't need to provide any of the parameters, but it is adviced to provide the `sensor` as it will be more resource friendly if the macro doesn't need to search for it.
+These parameters are used to determine where the source data can be found. If you use the [Nordpool integration](https://github.com/custom-components/nordpool), or an integration which uses the same attributes, you don't need to provide any of the parameters, but it is advised to provide the `sensor` as it will be more resource friendly if the macro doesn't need to search for it.
 
 ## 🚨 IMPORTANT NOTES 🚨
-* It is adviced to provice all parameters if they don't match the defaults. Although the macro will search for the attributes and keys, it is more resource friendly if they are already provided.
+* It is advised to provice all parameters if they don't match the defaults. Although the macro will search for the attributes and keys, it is more resource friendly if they are already provided.
 * If your sensor uses other attributes for the data of today and tomorrow you need to provide the correct `sensor` parameter or the correct `attr_today` and `attr_tomorrow` parameters. It can't find the right sensor if the atrributes differ from the defaults, and it can't find the right attributes if the right sensor is not provided.
 
 ## PARAMETERS
