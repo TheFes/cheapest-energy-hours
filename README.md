@@ -11,6 +11,10 @@ A jinja macro to easily find the cheapest block of hours to know when to turn on
 If your energy provider uses dynamic pricing, you might want to know when to turn on devices which consume a lot of power. It is relatively easy to find the lowest price on the day, but if it takes 3 hours for your dryer to complete, you might want to find the cheapest block of hours. It could be that the cheapest hour is not even in that block.
 This macro comes to the rescue!
 
+Funny note 😄 I don't have a dynamic price contract myself. It started as a challenge to myself to get it working, and gradually expanded to what it is now. I do have the Nordpool and ENTSOE integrations installed to test, but I don't have real life scenario's implemented, so I'm also depending on your feedback to improve the macro even further. So please keep sending in issues/questions/other feedback.
+
+In case you are able to reduce your energy bill by using this macro, please consider to buy me a cup of coffee ☕
+
 # How to install
 You need to have Home Assistant 2023.11 or higher installed to use this custom template.
 
@@ -26,4 +30,6 @@ See the separate [documentation](./documentation/0-how-to.md) on how to use the 
 
 # Thanks to
 * [@basbruss](https://github.com/basbruss) for providing the output mode and a lot of other additions!
+* [@hmmbob](https://github.com/hmmbob) for reviewing the 5.0.0 documentation
+* All users of the macro, especially those who provide valuable feedback in questions, issue reports or feature requests
 
