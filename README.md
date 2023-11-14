@@ -3,7 +3,7 @@
 [![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
 
 
-A jinja macro to easily find the cheapest consecutive block of hours to know when to turn on your dryer
+A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer
 
 # Why this macro
 
@@ -11,7 +11,7 @@ If your energy provider uses dynamic pricing, you might want to know when to tur
 This macro comes to the rescue!
 
 # How to install
-You need to have Home Assistant 2023.4 or higher installed to use custom templates.
+You need to have Home Assistant 2023.11 or higher installed to use this custom template.
 
 This custom template is compatible with [HACS](https://hacs.xyz/), which means that you can easily download and manage updates for it. Custom templates are currently only available in HACS when you enable experimental features. Make sure to enable it in the HACS settings, which you can access from Settings > [Devices & Services](https://my.home-assistant.io/create-link/?redirect=integrations) > HACS When experimental features are enabled you click the button below to add it to your HACS installation,
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TheFes&repository=cheapest-energy-hours&category=template)
