@@ -323,8 +323,6 @@
                     {%- else -%}
                         {%- set w = w[:int(h*no_weight_points)] -%}
                     {%- endif -%}
-                {%- elif no_weight_points is not none -%}
-                    {%- set w = [1] * (h * no_weight_points) | round(0, 'ceil') | int -%}
                 {%- endif -%}
             {#- check if no_weight_points matches datapoints in source -#}
                 {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
@@ -433,7 +431,7 @@
                 {%- endif -%}
             {#- debugging data -#}
                 {%- if debug -%}
-                    {%- set datapoints_source = dict(datapoints=dp, datapoints_hour=dph) -%}
+                    {%- set datapoints_used = dict(datapoints=dp, datapoints_hour=dph) -%}
                 {%- endif -%}
             {#- Perform selection based on start and end on the data -#}
                 {%- set values = data
