@@ -452,6 +452,7 @@
                             {%- set last_value = prices | max if lowest else prices | min -%}
                             {%- set values_last = values | selectattr('value', 'eq', last_value) | list -%}
                             {%- set last_needed = dp - (values | count - values_last | count) -%}
+                        {# make sure values are in the least possible number of time blocks #}
                             {%- if last_needed != values_last | count -%}
                                     {%- set ns = namespace(needed=last_needed, other=values | rejectattr('value', 'eq', last_value) | list, max=values_last) -%}
                                     {%- for v in values_last -%}
@@ -468,28 +469,11 @@
                                     {%- endfor -%}
                                     {%- set values = (ns.other + ns.max[:ns.needed]) | sort(attribute='time') -%}
                             {%- endif -%}
+                        {# create the split data #}
                             {%- set split = namespace(split=[], start=none, prices=[], datapoints=0) -%}
                             {%- for i in range(dp) -%}
                                 {%- set dt = values[loop.index0].time -%}
-                                {%- if i == 0 -%}
-                                    {%- set split.start = dt -%}
-                                    {%- set split.datapoints = 1 -%}
-                                    {%- set split.prices = [values[0].value] -%}
-                                    {%- if loop.last -%}
-                                        {%- set is_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
-                                        {%- set prices = split.prices -%}
-                                        {%- set split.split = split.split + [
-                                                                                dict(
-                                                                                        start=_format_date(split.start, time_format),
-                                                                                        end=_format_date(dt + timedelta(hours=1/dph), time_format),
-                                                                                        hours=(split.datapoints/dph)|round(2),
-                                                                                        prices=prices,
-                                                                                        is_now=is_now
-                                                                                    )
-                                                                            ]
-                                        -%}
-                                    {%- endif -%}
-                                {%- elif values[loop.index0 - 1].time != dt - timedelta(hours=1/dph) -%}
+                                {%- if i > 0 and values[loop.index0 - 1].time != dt - timedelta(hours=1/dph) -%}
                                     {%- set is_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
                                     {%- set prices = split.prices -%}
                                     {%- set split.split = split.split + [
@@ -506,6 +490,7 @@
                                     {%- set split.datapoints = 1 -%}
                                     {%- set split.prices = [values[loop.index0].value] -%}
                                 {%- else -%}
+                                    {%- set split.start = split.start | default(dt, true) -%}
                                     {%- set split.datapoints = split.datapoints + 1 -%}
                                     {%- set split.prices = split.prices + [values[loop.index0].value] -%}
                                     {%- if loop.last -%}
@@ -524,12 +509,13 @@
                                     {%- endif -%}
                                 {%- endif -%}
                             {%- endfor -%}
+                        {# prepare the output #}
                             {%- set split_all = split.split + [ dict(total_hours=h | round(2), datapoints_per_hour=dph, datapoints=dp)] -%}
                             {%- set pr = precision | default(5) -%}
                             {%- set list = split_all | selectattr('prices', 'defined') | map(attribute='prices') | sum(start=[]) -%}
                             {%- set min, max = list | min, list | max -%}
-                            {%- set time_min = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', min) | map(attribute='start') | join %}
-                            {%- set time_max = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', max) | map(attribute='start') | join %}
+                            {%- set time_min = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', min) | map(attribute='start') | first %}
+                            {%- set time_max = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', max) | map(attribute='start') | first %}
                             {%- set is_now = time_max | selectattr('is_now', 'defined') | selectattr('is_now') | list | count > 0 %}
                             {%- set output = dict(
                                                     list = list | map('round', pr) | list,
@@ -545,6 +531,7 @@
                                                     all = split_all
                                                 )
                             -%} 
+                        {# output the data #}
                             {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
                     {%- else -%}
                         {# create output for all modes #}
@@ -603,6 +590,7 @@
                                 {%- set macro_output = output[mode] -%}
                             {%- endif -%}
                     {%- endif -%}
+            {# output error message if there is not enought data #}
                 {%- else -%}
                     {%- set error_msg = 'Error: No{} data within current selection'.format('t enough' if values) -%}
                     {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
