@@ -409,7 +409,7 @@
                 {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
                 {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
             {#- rebuild data again to match no_weight_points -#}
-                {%- if wp_minutes != dp_minutes and w is not none -%}
+                {%- if wp_minutes != dp_minutes -%}
                     {%- if dp_minutes > wp_minutes -%}
                         {%- set rebuild = namespace(data=[]) -%}
                         {%- for v in (data * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
@@ -534,32 +534,32 @@
                     {%- else -%}
                         {#- create output for all modes -#}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], is_now=false) -%}
-                            {%- set last_values = int(h*no_weight_points) -%}
-                            {%- for i in range(values|count-(last_values-1)) -%}
-                                {%- set list = values[i:i+last_values] | map(attribute='value') | list -%}
+                            {%- set last_values = (h * no_weight_points) | round(0) | int -%}
+                            {%- for i in range(values | count - (last_values - 1)) -%}
+                                {%- set prices_list = values[i:i + last_values] | map(attribute='value') | list -%}
                                 {#- calculate (weighted) average price -#}
                                     {%- if w is not none -%}
                                         {%- set wa = namespace(sum=0,divide=0) -%}
-                                        {%- for i in list -%}
+                                        {%- for i in prices_list -%}
                                             {%- set wa.sum = wa.sum + i * w[loop.index0] -%}
                                             {%- set wa.divide = wa.divide + w[loop.index0] -%}
                                         {%- endfor -%}
                                             {%- set a = wa.sum / wa.divide -%}
                                     {%- else -%}
-                                        {%- set a = list | sum / dp -%}
+                                        {%- set a = prices_list | sum / dp -%}
                                     {%- endif -%}
                                 {%- set b = output.weighted_average -%}
-                                {%- set min, max = list | min, list | max -%}
-                                {%- if output.average is none or ((a < b) if lowest else (a > b)) -%}
+                                {%- set min, max = prices_list | min, prices_list | max -%}
+                                {%- if loop.first or ((a < b) if lowest else (a > b)) -%}
                                     {%- set pr = precision | default(5) -%}
-                                    {%- set output.list = list | map('round', pr) | list -%}
+                                    {%- set output.list = prices_list | map('round', pr) | list -%}
                                     {%- set output.min = min | round(pr) -%}
                                     {%- set output.max = max | round(pr) -%}
-                                    {%- set output.weighted_average = a | round(5) -%}
-                                    {%- set output.average = list | average | round(pr) -%}
+                                    {%- set output.weighted_average = a | round(pr) -%}
+                                    {%- set output.average = prices_list | average | round(pr) -%}
                                     {%- set output.start = _format_date(values[i].time, time_format | default(none)) -%}
                                     {%- set output.end = _format_date(values[i].time + timedelta(hours=h), time_format | default(none)) -%}
-                                    {%- set index_min, index_max = list.index(min), list.index(max) -%}
+                                    {%- set index_min, index_max = prices_list.index(min), prices_list.index(max) -%}
                                     {%- set output.time = values[i:i+last_values] | map(attribute='time') | list -%}
                                     {%- set output.time_min = _format_date(output.time[index_min], time_format | default(none)) -%}
                                     {%- set output.time_max = _format_date(output.time[index_max], time_format | default(none)) -%}
