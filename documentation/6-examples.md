@@ -3,7 +3,7 @@
 TO BE REWRITTEN
 
 Examples to be added
-* Start smart dishwasher overnight
+* [Start smart dishwasher overnight](6a-dishwasher_overnight.md)
 * Charge car using split
 
 ## Basic examples
