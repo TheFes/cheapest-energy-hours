@@ -1,0 +1,29 @@
+{%- set sensor = 'sensor.nordpool_kwh_nl_eur_3_10_021' %}
+{%- set sensors = [ 'sensor.nordpool_kwh_nl_eur_3_10_021', 'sensor.entsoe_average_electricity_price_today' ] %}
+{%- set h = 5.75 -%}
+{%- set m = 'end' -%}
+{%- set s = [ '00:00', now(), '22:00'] %}
+{%- set e = ['00:00', now()+timedelta(hours=12), '09:00'] -%}
+{%- set pr = [ 'vaatwasser_eco', none ] %}
+{%- set it = [ true, false ] %}
+{%- set sp =[ true, false ] %}
+{%- set d, js = false, false -%}
+{%- from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
+{% set ns = namespace(output=[]) %}
+{%- for i_sn in sensors -%}
+  {%- for i_s in s -%}
+    {%- for i_e in e -%}
+      {% for i_it in it -%} 
+        {% for i_sp in sp -%}
+        {%- for i_pr in pr %}
+            {% set result = cheapest_energy_hours(sensor=i_sn, hours=h, start=i_s, end=i_e, include_tomorrow=i_it, split=i_sp, debug=d, mode=m, program=i_pr) -%}
+            {% set result = result | from_json if js and d else result -%}
+            {% set ns.output = ns.output + [result] -%}
+          {%- endfor -%}
+        {%- endfor -%}
+      {% endfor -%}
+    {% endfor -%}
+  {%- endfor -%}  
+{%- endfor -%}
+{{ ns.output }}
+  

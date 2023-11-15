@@ -1,4 +1,4 @@
-{%- set _version = '5.0.0b6' -%}
+{%- set _version = '5.0.0b7' -%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -201,16 +201,16 @@
         {#- try to find correct attributes if no valid data was found -#}
             {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default('attr_today_not_found', true) -%}
             {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default('attr_tomorrow_not_found', true)  -%}
-            {%- set attr_all = (attr_all if all_check else _find_attr(sensor, 'all')) | default('attr_all_not_found', true) -%}
+            {%- set attr_all = (attr_all if (all_check or today_check and tomorrow_check) else _find_attr(sensor, 'all')) | default('attr_all_not_found', true) -%}
         {#- set set dataset with all attributes -#}
             {%- set today = state_attr(sensor, attr_today) | default([], true) -%}
             {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
-            {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
+            {%- set all = state_attr(sensor, attr_all) | default([], true) if all is list and all[0] is mapping else [] -%}
             {%- set data = (today + tomorrow) or all -%}
         {#- Try to find the right time_key and value_key if provided parameters are not found -#}
             {%- set day = timedelta(days=1) -%}
-            {%- if data[0] | default is mapping -%}
-                {%- if time_key not in data[0] -%}
+            {#- time key -#}
+                {%- if time_key not in data[0] | default({})-%}
                     {%- set tk_list =
                             data[0].items()
                                 | rejectattr('1', 'is_number')
@@ -222,7 +222,8 @@
                     {%- set tk_valid = tk_value and (yd in tk_value or td in tk_value or tm in tk_value) -%}
                     {%- set time_key = tk_list[0][0] if tk_valid else time_key -%}
                 {%- endif -%}
-                {%- if value_key not in data[0] -%}
+            {#- value_key -#}
+                {%- if value_key not in data[0] | default({}) -%}
                     {%- set vk_list =
                             data[0].items()
                                 | selectattr('1', 'is_number')
@@ -231,19 +232,19 @@
                     -%}
                     {%- set value_key = vk_list | first if vk_list else value_key -%}
                 {%- endif -%}
-            {%- endif -%}
         {#- check if sensor has valid data -#}
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
             {#- Rebuild data from sensor to generic format -#}
-                {%- set rebuild = namespace(data=[]) -%}
-                {%- for item in data -%}
-                    {%- set time = item[time_key] -%}
-                    {%- set time = as_datetime(time) if time is string else time -%}
-                    {%- set rebuild.data = rebuild.data + [dict(time=time, value=item[value_key] * price_factor | float(1))] -%}
-                {%- endfor -%}
-                {%- set time_key_check, value_key_check = 'time', 'value' -%}
-                {%- set data = rebuild.data | sort(attribute='time') -%}
-                {%- set dph = int(3600 / (data[1].time - data[0].time).total_seconds()) if data | count > 1 else 1 -%}
+                {%- if data[0][time_key] is not datetime -%}
+                    {%- set rebuild = namespace(data=[]) -%}
+                    {%- for item in data -%}
+                        {%- set time = item[time_key] -%}
+                        {%- set time = as_local(as_datetime(time)) if time is string else time -%}
+                        {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor | float(1)}] -%}
+                    {%- endfor -%}
+                    {%- set data = rebuild.data | sort(attribute='time') -%}
+                {%- endif -%}
+                {%- set dph = int(3600 / (data[1][time_key] - data[0][time_key]).total_seconds()) if data | count > 1 else 1 -%}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
                     {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
@@ -259,33 +260,33 @@
             {#- convert start and end input to local datetime -#}
                 {%- set n = now().replace(microsecond=0) -%}
                 {#- start -#}
-                {%- if start is datetime -%}
-                    {%- set start = start.replace(microsecond=0) | as_local -%}
-                {%- elif start | as_datetime is not none -%}
-                    {%- set start = as_datetime(start).replace(microsecond=0) | as_local -%}
-                {%- else -%}
-                    {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
-                    {%- set start = start if include_today else start + day -%}
-                    {%- if look_ahead -%}
-                        {%- set start = [n, start] | max -%}
+                    {%- if start is datetime -%}
+                        {%- set start = start.replace(microsecond=0) | as_local -%}
+                    {%- elif start | as_datetime is not none -%}
+                        {%- set start = as_datetime(start).replace(microsecond=0) | as_local -%}
+                    {%- else -%}
+                        {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
+                        {%- set start = start if include_today else start + day -%}
+                        {%- if look_ahead -%}
+                            {%- set start = [n, start] | max -%}
+                        {%- endif -%}
                     {%- endif -%}
-                {%- endif -%}
-                {%- set seconds = start.minute * 60 + start.second -%}
-                {%- set remain = _div_calc(seconds, h, dph, before=true, mode='remain') | int -%}
-                {%- set start_dph = _div_calc(seconds, h, dph, before=true) | int -%}
+                    {%- set seconds = start.minute * 60 + start.second -%}
+                    {%- set remain = _div_calc(seconds, h, dph, before=true, mode='remain') | int -%}
+                    {%- set start_dph = _div_calc(seconds, h, dph, before=true) | int -%}
                 {#- end -#}
-                {%- if end is datetime -%}
-                    {%- set end = end.replace(microsecond=0) | as_local -%}
-                {%- elif end | as_datetime is not none -%}
-                    {%- set end = as_datetime(end).replace(microsecond=0) | as_local -%}
-                {%- else -%}
-                    {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
-                    {%- set end = end + day if end == today_at() else end -%}
-                    {%- set end = end + day if include_tomorrow else end -%}
-                {%- endif -%}
-                {%- set seconds = end.minute * 60 + end.second -%}
-                {%- set remain = _div_calc(seconds, h, dph, mode='remain') | int -%}
-                {%- set end_dph = _div_calc(seconds, h, dph) | int -%}
+                    {%- if end is datetime -%}
+                        {%- set end = end.replace(microsecond=0) | as_local -%}
+                    {%- elif end | as_datetime is not none -%}
+                        {%- set end = as_datetime(end).replace(microsecond=0) | as_local -%}
+                    {%- else -%}
+                        {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
+                        {%- set end = end + day if end == today_at() else end -%}
+                        {%- set end = end + day if include_tomorrow else end -%}
+                    {%- endif -%}
+                    {%- set seconds = end.minute * 60 + end.second -%}
+                    {%- set remain = _div_calc(seconds, h, dph, mode='remain') | int -%}
+                    {%- set end_dph = _div_calc(seconds, h, dph) | int -%}
             {#- calculate no_weight_points based on hour input -#}
                 {%- set seconds = (h % 1 * 3600) | round(0) -%}
                 {%- set h_dph = _div_calc(seconds, h, dph) | int -%}
@@ -375,8 +376,8 @@
         {%- set errors = [
                             "No valid sensor found" if not sensor | has_value,
                             "No valid data in {}".format(sensor) if data == [],
-                            "Time key '{}' not found in data".format(time_key) if data and time_key_check not in data[0],
-                            "Value key '{}' not found in data".format(value_key) if data and value_key_check not in data[0],
+                            "Time key '{}' not found in data".format(time_key) if data and time_key not in data[0],
+                            "Value key '{}' not found in data".format(value_key) if data and value_key not in data[0],
                             "Invalid mode '{}' selected".format(mode) if mode not in modes,
                             "Boolean input expected for include_today, '{}' can not be processed as a boolean".format(include_today) if include_today | bool("") is not boolean,
                             "Boolean input expected for include_tomorrow, '{}' can not be processed as a boolean".format(include_tomorrow) if include_tomorrow | bool("") is not boolean,
@@ -405,39 +406,36 @@
             -}}
     {#- no error - continue with macro -#}
         {%- else -%}
-            {#- determine how many data points per hour are used -#}
-                {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
-                {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
             {#- rebuild data again to match no_weight_points -#}
-                {%- if wp_minutes != dp_minutes -%}
+                {# split hours if needed #}
                     {%- if dp_minutes > wp_minutes -%}
                         {%- set rebuild = namespace(data=[]) -%}
-                        {%- for v in (data * int(dp_minutes/wp_minutes)) | sort(attribute='time') -%}
-                            {%- set t = v.time -%}
+                        {%- for v in (data * int(dp_minutes/wp_minutes)) | sort(attribute=time_key) -%}
+                            {%- set t = v[time_key] -%}
                             {%- set t = t + timedelta(minutes=(wp_minutes*(loop.index0 % int(dp_minutes/wp_minutes)))) -%}
-                            {%- set rebuild.data = rebuild.data + [ dict(time=t, value=v.value) ] -%}
+                            {%- set rebuild.data = rebuild.data + [ {time_key: t, value_key: v[value_key]} ] -%}
                         {%- endfor -%}
                         {%- set data = rebuild.data -%}
-                        {%- set dph = 3600 / (data[1].time - data[0].time).seconds -%}
+                        {%- set dph = 3600 / (data[1][time_key] - data[0][time_key]).seconds -%}
                         {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
                         {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
-                    {%- else -%}
+                {# add weights for additional datapoints if needed #}
+                    {%- elif dp_minutes < wp_minutes and w is not none -%}
                         {%- set weight_adjust = namespace(weight=[]) -%}
                         {%- for item in w -%}
-                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * int(wp_minutes/dp_minutes) -%}
+                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * int(round(wp_minutes/dp_minutes),0) -%}
                         {%- endfor -%}
                         {%- set w = weight_adjust.weight -%}
                     {%- endif -%}
-                {%- endif -%}
             {#- debugging data -#}
                 {%- if debug -%}
                     {%- set datapoints_used = dict(datapoints=dp, datapoints_hour=dph) -%}
                 {%- endif -%}
             {#- Perform selection based on start and end on the data -#}
                 {%- set values = data
-                                    | selectattr('time', '>=', start)
-                                    | selectattr('time', '<', end)
-                                    | selectattr('value', 'is_number')
+                                    | selectattr(time_key, '>=', start)
+                                    | selectattr(time_key, '<', end)
+                                    | selectattr(value_key, 'is_number')
                                     | list
                 -%}
             {#- Check if there is data, and find the right hour block -#}
@@ -445,33 +443,33 @@
                     {%- set split = mode == 'split' or split -%}
                     {%- if split -%}
                         {#- sort values and take out hours needed -#}
-                            {%- set prices = (values | sort(attribute='value', reverse=not lowest) | map(attribute='value') | list)[:dp] -%}
-                            {%- set values = values | selectattr('value', 'in', prices) | sort(attribute='time') | list -%}
+                            {%- set prices = (values | sort(attribute=value_key, reverse=not lowest) | map(attribute=value_key) | list)[:dp] -%}
+                            {%- set values = values | selectattr(value_key, 'in', prices) | sort(attribute=time_key) | list -%}
                             {%- set last_value = prices | max if lowest else prices | min -%}
-                            {%- set values_last = values | selectattr('value', 'eq', last_value) | list -%}
+                            {%- set values_last = values | selectattr(value_key, 'eq', last_value) | list -%}
                             {%- set last_needed = dp - (values | count - values_last | count) -%}
                         {#- make sure values are in the least possible number of time blocks -#}
                             {%- if last_needed != values_last | count -%}
-                                    {%- set ns = namespace(needed=last_needed, other=values | rejectattr('value', 'eq', last_value) | list, max=values_last) -%}
+                                    {%- set ns = namespace(needed=last_needed, other=values | rejectattr(value_key, 'eq', last_value) | list, max=values_last) -%}
                                     {%- for v in values_last -%}
-                                        {%- set above = ns.other | selectattr('time', 'eq', v.time + timedelta(minutes=dp_minutes)) | list | count -%}
-                                        {%- set below = ns.other | selectattr('time', 'eq', v.time - timedelta(minutes=dp_minutes)) | list | count -%}
+                                        {%- set above = ns.other | selectattr(time_key, 'eq', v[time_key] + timedelta(minutes=dp_minutes)) | list | count -%}
+                                        {%- set below = ns.other | selectattr(time_key, 'eq', v[time_key] - timedelta(minutes=dp_minutes)) | list | count -%}
                                         {%- if above or below -%}
                                             {%- set ns.other = ns.other + [v] -%}
-                                            {%- set ns.max = ns.max | reject('eq', v) | sort(attribute='time') | list -%}
+                                            {%- set ns.max = ns.max | reject('eq', v) | sort(attribute=time_key) | list -%}
                                             {%- set ns.needed = ns.needed - 1 -%}
                                         {%- endif -%}
                                         {%- if ns.needed == 0 -%}
                                             {%- break -%}
                                         {%- endif -%}
                                     {%- endfor -%}
-                                    {%- set values = (ns.other + ns.max[:ns.needed]) | sort(attribute='time') -%}
+                                    {%- set values = (ns.other + ns.max[:ns.needed]) | sort(attribute=time_key) -%}
                             {%- endif -%}
                         {#- create the split data -#}
                             {%- set split = namespace(split=[], start=none, prices=[], datapoints=0) -%}
                             {%- for i in range(dp) -%}
-                                {%- set dt = values[loop.index0].time -%}
-                                {%- if i > 0 and values[loop.index0 - 1].time != dt - timedelta(hours=1/dph) -%}
+                                {%- set dt = values[loop.index0][time_key] -%}
+                                {%- if i > 0 and values[loop.index0 - 1][time_key] != dt - timedelta(hours=1/dph) -%}
                                     {%- set is_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
                                     {%- set prices = split.prices -%}
                                     {%- set split.split = split.split + [
@@ -486,11 +484,11 @@
                                     -%}
                                     {%- set split.start = dt -%}
                                     {%- set split.datapoints = 1 -%}
-                                    {%- set split.prices = [values[loop.index0].value] -%}
+                                    {%- set split.prices = [values[loop.index0][value_key]] -%}
                                 {%- else -%}
                                     {%- set split.start = split.start | default(dt, true) -%}
                                     {%- set split.datapoints = split.datapoints + 1 -%}
-                                    {%- set split.prices = split.prices + [values[loop.index0].value] -%}
+                                    {%- set split.prices = split.prices + [values[loop.index0][value_key]] -%}
                                     {%- if loop.last -%}
                                         {%- set is_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
                                         {%- set prices = split.prices -%}
@@ -536,15 +534,14 @@
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], is_now=false) -%}
                             {%- set last_values = (h * no_weight_points) | round(0) | int -%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
-                                {%- set prices_list = values[i:i + last_values] | map(attribute='value') | list -%}
+                                {%- set prices_list = values[i:i + last_values] | map(attribute=value_key) | list -%}
                                 {#- calculate (weighted) average price -#}
                                     {%- if w is not none -%}
-                                        {%- set wa = namespace(sum=0,divide=0) -%}
-                                        {%- for i in prices_list -%}
-                                            {%- set wa.sum = wa.sum + i * w[loop.index0] -%}
-                                            {%- set wa.divide = wa.divide + w[loop.index0] -%}
+                                        {%- set weighted = namespace(sum=0) -%}
+                                        {%- for price in prices_list -%}
+                                            {%- set weighted.sum = weighted.sum + price * w[loop.index0] -%}
                                         {%- endfor -%}
-                                            {%- set a = wa.sum / wa.divide -%}
+                                        {%- set a = weighted.sum / w | count -%}
                                     {%- else -%}
                                         {%- set a = prices_list | sum / dp -%}
                                     {%- endif -%}
@@ -557,10 +554,10 @@
                                     {%- set output.max = max | round(pr) -%}
                                     {%- set output.weighted_average = a | round(pr) -%}
                                     {%- set output.average = prices_list | average | round(pr) -%}
-                                    {%- set output.start = _format_date(values[i].time, time_format | default(none)) -%}
-                                    {%- set output.end = _format_date(values[i].time + timedelta(hours=h), time_format | default(none)) -%}
+                                    {%- set output.start = _format_date(values[i][time_key], time_format | default(none)) -%}
+                                    {%- set output.end = _format_date(values[i][time_key] + timedelta(hours=h), time_format | default(none)) -%}
                                     {%- set index_min, index_max = prices_list.index(min), prices_list.index(max) -%}
-                                    {%- set output.time = values[i:i+last_values] | map(attribute='time') | list -%}
+                                    {%- set output.time = values[i:i+last_values] | map(attribute=time_key) | list -%}
                                     {%- set output.time_min = _format_date(output.time[index_min], time_format | default(none)) -%}
                                     {%- set output.time_max = _format_date(output.time[index_max], time_format | default(none)) -%}
                                     {%- set output.is_now = output.time[index_min] < now() < output.time[index_max] -%}
