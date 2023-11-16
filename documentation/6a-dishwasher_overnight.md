@@ -25,7 +25,7 @@ template:
         state: >
           {%- set sensor = 'sensor.energy_prices' -%}
           {% from "cheapest_energy_hours.jinja" import cheapest_energy_hours %}
-          {{ cheapest_energy_hours(sensor=sensor, hours=2.5, start='22:00', end='08:00, include_tomorrow=true) }}
+          {{ cheapest_energy_hours(sensor=sensor, hours=2.5, start='22:00', end='08:00', include_tomorrow=true) }}
 
 # automation
 automation:
