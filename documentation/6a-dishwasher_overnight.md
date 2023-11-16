@@ -94,3 +94,6 @@ automation:
       - service: swith.turn_on
         target:
 ```
+
+### NAVIGATION
+[CONTENTS](0-how-to.md) | [EXAMPLE: CHARGE THE CAR WITH THE LOWEST RATES](./6b-charge_car.md)
