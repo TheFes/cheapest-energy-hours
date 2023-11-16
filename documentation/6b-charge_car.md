@@ -8,10 +8,10 @@ This time a binary sensor will be used, in combination with `mode=is_now`. This 
 
 ### REQUIRED
 * An electric or hybrid car
-* A sensor indicating the remaining charge time (in this example that sensor indicates the remaining time in minutes)
 * A device_tracker indicating it's at home (if you connect it to a charger elsewhere, you probably actually want to charge it)
+* A sensor indicating the remaining charge time (in this example that sensor indicates the remaining time in minutes)
 * A binary_sensor indicating it's connected to the charger
-* An input_datetime indicating the time it needs to be full, this should be a date + time input_datetime
+* An input_datetime indicating the time the car needs to be fully charged again (the time you want to use it), this should be a date + time input_datetime
 
 ```yaml
 # template sensor
