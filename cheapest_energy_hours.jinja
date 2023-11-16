@@ -1,4 +1,4 @@
-{%- set _version = '5.0.0b7' -%}
+{%- set _version = '5.0.0b8' -%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -210,20 +210,29 @@
         {#- Try to find the right time_key and value_key if provided parameters are not found -#}
             {%- set day = timedelta(days=1) -%}
             {#- time key -#}
-                {%- if time_key not in data[0] | default({})-%}
+                {%- if data | count > 0 and data[0] is mapping and time_key not in data[0] -%}
                     {%- set tk_list =
                             data[0].items()
-                                | rejectattr('1', 'is_number')
+                                | selectattr('1', 'datetime')
                                 | sort(attribute='1')
                                 | list
                     -%}
-                    {%- set tk_value = tk_list[0][1] | string if tk_list else '' -%}
-                    {%- set yd, td, tm = (now() - day).date() | string, now().date() | string, (now() + day).date() | string -%}
-                    {%- set tk_valid = tk_value and (yd in tk_value or td in tk_value or tm in tk_value) -%}
-                    {%- set time_key = tk_list[0][0] if tk_valid else time_key -%}
+                    {%- if tk_list | count == 0 -%}
+                        {%- set dates_check = [(now() - day).date() | string, now().date() | string, (now() + day).date() | string] | join('|') -%}
+                        {%- set tk_list =
+                                data[0].items()
+                                    | selectattr('1', 'string')
+                                    | selectattr('1', 'search', dates_check) 
+                                    | sort(attribute='1')
+                                    | list
+                        -%}
+                    {%- endif -%}
+                    {%- if tk_list | count > 0 -%}
+                        {%- set time_key = tk_list[0][0] -%}
+                    {%- endif -%}
                 {%- endif -%}
             {#- value_key -#}
-                {%- if value_key not in data[0] | default({}) -%}
+                {%- if data | count > 0 and data[0] is mapping and value_key not in data[0] -%}
                     {%- set vk_list =
                             data[0].items()
                                 | selectattr('1', 'is_number')
@@ -587,7 +596,9 @@
                     {%- endif -%}
             {#- output error message if there is not enought data -#}
                 {%- else -%}
-                    {%- set error_msg = 'Error: No{} data within current selection'.format('t enough' if values) -%}
+                    {%- set v = values | count -%}
+                    {%- set h_v = v / no_weight_points | round(3) -%}
+                    {%- set error_msg = '1 error: {} datapoints ({} hours) in selection, where {} ({} hours) are expected'.format(v, h_v, dp, h | round(3)) -%}
                     {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
                 {%- endif -%}
                 {%- if debug -%}
