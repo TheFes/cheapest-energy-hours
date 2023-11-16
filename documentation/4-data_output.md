@@ -1,4 +1,4 @@
-## 🚨 IMPORTANT NOTES 🚨
+## 🚨 IMPORTANT NOTE 🚨
 
 * A macro **ALWAYS** returns a string. So you need to convert the output based on the selected [mode](#output-modes). So if your output is the price, you need to convert it to a number using the `float` function of filter to be able to calculate with it, if it is the start or end time, you can use `as_datetime`. For more complex structures used in the modes `split` and `all` use `from_json` (only available as filter) and for the mode `is_now` you can use `bool`. Make sure to use defaults, or use the `value_on_error` parameter to avoid errors while converting the data.
 
@@ -127,4 +127,4 @@ Will be used as output instead of error messages, so for eg in combination with 
 ```
 
 ### NAVIGATION
-[PREVIOUS: ADVANCED DATA](3-advanced_data.md) || [NEXT: ERROR HANDLING](5-error_handling.md)
+[PREVIOUS: ADVANCED DATA](3-advanced_data.md) | [CONTENTS](0-how-to.md) | [NEXT: ERROR HANDLING](5-error_handling.md)

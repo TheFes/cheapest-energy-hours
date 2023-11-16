@@ -34,4 +34,4 @@ The key used in the attributes of your integration for the price values
 ```
 
 ### NAVIGATION
-[PREVIOUS: CONTENTS](./0-how-to.md) || [NEXT: BASIC DATA](2-basic_data.md)
+[PREVIOUS: CONTENTS](./0-how-to.md) | [CONTENTS](0-how-to.md) | [NEXT: BASIC DATA](2-basic_data.md)

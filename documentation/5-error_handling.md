@@ -18,4 +18,4 @@ The macro will display error messages as output in case of incorrect input.
 
 
 ### NAVIGATION
-[PREVIOUS: DATA OUTPUT](./4-data_output.md) || [NEXT: EXPAMPLES](./6-examples.md)
+[PREVIOUS: DATA OUTPUT](./4-data_output.md) | [CONTENTS](0-how-to.md) | [NEXT: EXPAMPLES](./6-examples.md)

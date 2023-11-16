@@ -2,10 +2,14 @@
 
 ## 🚨 IMPORTANT NOTES 🚨
 
-* When using a `start` and `end` which spans midnight, the output will change after midnight, as the source data will change as well (the data for the previous day will no longer be available). To avoid issues with changing data it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and trigger it e.g. an hour before your `start` setting.
-* In case a time string like `"16:00"` is provided for the `end` time, this will be the time today if `inlcude_tomorrow` is not provided, or set to `false`. When set to `true` it will be the same time tomorrow. If no data for tomorrow is available, it will in practice be next midnight.
-* `look_ahead` doesn't automatically include the dates of tomorrow if it is currently after the time set for `end`. That will just make the data selection empty.
-* `hours`, `start` and `end` will be converted to be divisible by 5, 10, 12, 15 or 30 minutes (watherever is closest to the current setting), `hours` and `end` will be rounded up, `start` will be rounded down. If there is a conflict between 2 of these calculations (eg `hours` is divisible by 12 minutes, and `start` by 10 minutes) they will all be converted to be divisible by 5 minutes.
+* `start` and `end`
+  * When using a `start` and `end` which spans midnight, the output will change after midnight, as the source data will change as well (the data for the previous day will no longer be available). To avoid issues with changing data it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and trigger it e.g. an hour before your `start` setting.
+  * In case a time string like `"16:00"` is provided for the `end` time, this will be the time today if `inlcude_tomorrow` is not provided or set to `false`. When set to `true` it will be the same time tomorrow. If no data for tomorrow is available, it will in practice be next midnight.
+* using `look_ahead`
+  * `look_ahead` doesn't automatically include the dates of tomorrow if it is currently after the time set for `end`. That will just make the data selection empty and an error message will be the output of the macro.
+  * setting `look_ahead` to `true` will move your data range, and the macro has no knowlegde about the data in the past. So if the cheapest time is eg `13:00`, there will be a new cheapest time after that hour is passed. Using `look_ahead` in an automation trigger can make the automation trigger multiple times during the selected period. . To avoid issues with changing data it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors).
+* conversion of input to match source data and/or provided `program`, `weight` or `no_weight_points` (see [3. ADVANCED DATA](./3-advanced_data.md))
+  * `hours`, `start` and `end` will be converted to be divisible by 5, 10, 12, 15 or 30 minutes (watherever is closest to the current setting), `hours` and `end` will be rounded up, `start` will be rounded down. If there is a conflict between 2 of these calculations (eg `hours` is divisible by 12 minutes, and `start` by 10 minutes) they will all be converted to be divisible by 5 minutes.
 
 ## PARAMETERS
 
@@ -37,4 +41,4 @@ Set to `true` to only include prices as of now. If combined with `start` the lat
 ```
 
 ### NAVIGATION
-[PREVIOUS: SOURCE SENSOR](./1-source_sensor.md) || [NEXT: ADVANCED DATA](./3-advanced_data.md)
+[PREVIOUS: SOURCE SENSOR](./1-source_sensor.md) | [CONTENTS](0-how-to.md) | [NEXT: ADVANCED DATA](./3-advanced_data.md)

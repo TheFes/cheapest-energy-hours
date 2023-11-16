@@ -13,9 +13,9 @@ More information on how to use the script and template sensor can be found [here
 
 * When `no_weight_points` is set, the input for `hours`, `start` and `end` will be calculated according to this setting. So with `no_weight_points` set to `4` and a the `start` paramater is set to `12:59` the start time will be converted to `12:45`
 * In case `no_weight_points` is set, and no `weight` is provided, a weight of `1` will be used.
+* In case the `program` parameter is used, the `no_weight_points` and `weight` from the sensor are used, and the respective parameters will be ignored.
 * If the `hours` parameter is not set the number or hours will be calculated based on `weight` and `no_weight_points`. So e.g. if there are 4 weight points per hour, and the `weight` list has 7 items, `hours` will be set to `1.75` (7/4).
 * If the `hours` parameter is set, and it is less as expected based on the number of weight points, the `weight` value is truncated and only the first part is used. If `hours` is longer than expected based on the `weight` input a weight of `0` will be added for all missing items in the list.
-* In case the `program` parameter is used, the `no_weight_points` and `weight` from the sensor are used, and the respective parameters will be ignored.
 
 ## PARAMETERS
 
@@ -42,4 +42,4 @@ Description of data used in the energy plot sensor. Automatically adds the weigh
 ```
 
 ### NAVIGATION
-[PREVIOUS: BASIC DATA](./2-basic_data.md) || [NEXT: DATA OUTPUT](4-data_output.md)
+[PREVIOUS: BASIC DATA](./2-basic_data.md) | [CONTENTS](0-how-to.md) | [NEXT: DATA OUTPUT](4-data_output.md)
