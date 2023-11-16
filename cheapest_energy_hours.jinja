@@ -281,7 +281,7 @@
                         {%- endif -%}
                     {%- endif -%}
                     {%- set seconds = start.minute * 60 + start.second -%}
-                    {%- set remain = _div_calc(seconds, h, dph, before=true, mode='remain') | int -%}
+                    {%- set remain = _div_calc(seconds, h, dph, before=true if mode == 'is_now' else false, mode='remain') | int -%}
                     {%- set start_dph = _div_calc(seconds, h, dph, before=true) | int -%}
                 {#- end -#}
                     {%- if end is datetime -%}
@@ -320,7 +320,7 @@
                     {%- set h = _div_calc(seconds, h, dph, no_weight_points, mode='hours') | float -%}
                 {#- start -#}
                     {%- set seconds = start.minute * 60 + start.second -%}
-                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=true, mode='remain') | int -%} 
+                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=true if mode == 'is_now' else false, mode='remain') | int -%} 
                     {%- set start = start - timedelta(seconds=remain) -%}
                 {#- end -#}
                     {%- set seconds = end.minute * 60 + end.second -%}
