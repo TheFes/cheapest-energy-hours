@@ -22,7 +22,7 @@ template:
         device_class: timestamp
         state: >
           {% set sensor = 'sensor.energy_prices' %}
-          {% set hours  = states('sensor.remaining_charge_time') | float / 60 %}
+          {% set hours = states('sensor.remaining_charge_time') | float / 60 %}
           {% from "cheapest_energy_hours.jinja" import cheapest_energy_hours %}
           {{ cheapest_energy_hours(sensor=sensor, hours=hours, start=now(), end=states('input_datetime.leave_home_again'), mode='is_now') }}
         availability: >
