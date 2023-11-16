@@ -19,7 +19,6 @@ template:
   - binary_sensor:
       - unique_id: 911f0a21-48de-438f-90a2-4b46401268b3
         name: Charge Car Cheap
-        device_class: timestamp
         state: >
           {% set sensor = 'sensor.energy_prices' %}
           {% set hours = states('sensor.remaining_charge_time') | float / 60 %}
