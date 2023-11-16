@@ -29,7 +29,7 @@
     {{- price_sensor.id -}}
 {%- endmacro-%}
 
-{#- sub macro to find the right attriubues -#}
+{#- sub macro to find the right attributes -#}
 {%- macro _find_attr(sensor, type) -%}
     {%- set td = now().date() | string -%}
     {%- set tm = (now() + timedelta(days=1)).date() | string -%}
@@ -326,7 +326,7 @@
                     {%- set seconds = end.minute * 60 + end.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, no_weight_points, mode='remain') | int -%} 
                     {%- set end = end + timedelta(seconds=remain) -%}
-            {#- set weight points based on number of hours (either add zeros, or remove unneeded part) -#}
+            {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
                     {%- if w | count <= h * no_weight_points -%}
                         {%- set w = w + [0] * int(h*no_weight_points - w | count) -%}
@@ -459,6 +459,7 @@
                             {%- set last_needed = dp - (values | count - values_last | count) -%}
                         {#- make sure values are in the least possible number of time blocks -#}
                             {%- if last_needed != values_last | count -%}
+                                    {#- select those datetimes which are connected to datetimes with the other values -#}
                                     {%- set ns = namespace(needed=last_needed, other=values | rejectattr(value_key, 'eq', last_value) | list, max=values_last) -%}
                                     {%- for v in values_last -%}
                                         {%- set above = ns.other | selectattr(time_key, 'eq', v[time_key] + timedelta(minutes=dp_minutes)) | list | count -%}
