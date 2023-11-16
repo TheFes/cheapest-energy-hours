@@ -6,7 +6,7 @@ Based on the input recieved from users of the macro, I've written two examples o
 
 [TURN A DEVICE ON AT THE LOWEST PRICE WHILE YOU ARE SLEEPING](6a-dishwasher_overnight.md)
 
-[CHARGE THE CAR WITH THE LOWEST PRICES](6b-charge_car.md)
+[CHARGE THE CAR USING THE LOWEST RATES](6b-charge_car.md)
 
 
 ### NAVIGATION

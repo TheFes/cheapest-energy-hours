@@ -96,4 +96,4 @@ automation:
 ```
 
 ### NAVIGATION
-[CONTENTS](0-how-to.md) | [EXAMPLE: CHARGE THE CAR WITH THE LOWEST RATES](./6b-charge_car.md)
+[CONTENTS](0-how-to.md) | [CHARGE THE CAR USING THE LOWEST RATES](./6b-charge_car.md)

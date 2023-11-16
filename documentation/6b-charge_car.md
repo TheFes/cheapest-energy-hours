@@ -1,4 +1,4 @@
-# EXAMPLE: CHARGE THE CAR WITH THE LOWEST RATES
+# EXAMPLE: CHARGE THE CAR USING THE LOWEST RATES
 
 ## PROBLEM DESCRIPTION
 When you arrive home with your electric car, and you don't need to leave for a while, you want to charge it at the lowest rates possible. This is not nnecessarily a consecitve block of hours, so here the `split` functionality can be used.
