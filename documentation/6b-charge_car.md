@@ -41,10 +41,15 @@ automation:
         to:
           - "on"
           - "off"
+    variables:
+      charge_switch: switch.charge_car
+    condition:
+      - platform: template
+        value_template: "{{ not is_state(charge_switch, trigger.to_state.state) }}"
     action:
       - service: swith.turn_{{ trigger.to_state.state }}
         target:
-          entity_id: switch.charge_car
+          entity_id: "{{ charge_switch }}"
 ```
 
 ### NAVIGATION
