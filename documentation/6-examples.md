@@ -8,4 +8,4 @@ Based on the input recieved from users of the macro, I've written two examples o
 
 
 ### NAVIGATION
-[PREVIOUS: ERROR HANDLING](5-error_handling.md)
+[PREVIOUS: ERROR HANDLING](5-error_handling.md) | [CONTENTS](0-how-to.md)
