@@ -1,4 +1,4 @@
-# ERROR HANDLING
+# 5. ERROR HANDLING
 
 The macro will display error messages as output in case of incorrect input.
 |Message|What do do|

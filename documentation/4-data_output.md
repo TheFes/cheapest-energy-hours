@@ -1,3 +1,5 @@
+# 4. DATA OUTPUT
+
 ## 🚨 IMPORTANT NOTE 🚨
 
 * A macro **ALWAYS** returns a string. So you need to convert the output based on the selected [mode](#output-modes). So if your output is the price, you need to convert it to a number using the `float` function of filter to be able to calculate with it, if it is the start or end time, you can use `as_datetime`. For more complex structures used in the modes `split` and `all` use `from_json` (only available as filter) and for the mode `is_now` you can use `bool`. Make sure to use defaults, or use the `value_on_error` parameter to avoid errors while converting the data.
