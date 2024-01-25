@@ -1,4 +1,4 @@
-{%- set _version = '5.0.3'-%}
+{%- set _version = '5.1.0'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -108,6 +108,8 @@
                                     attr_all='prices',
                                     time_key='start',
                                     value_key='value',
+                                    datetime_in_data=true,
+                                    data_minutes=60,
                                     mode='start',
                                     time_format=none,
                                     include_today=true,
@@ -140,6 +142,8 @@
                                         attr_all='prices',
                                         time_key='start',
                                         value_key='value',
+                                        datetime_in_data=true,
+                                        data_minutes=60,
                                         mode='start',
                                         time_format=none,
                                         include_today=true,
@@ -167,6 +171,8 @@
                                         attr_all=attr_all,
                                         time_key=time_key,
                                         value_key=value_key,
+                                        datetime_in_data=datetime_in_data,
+                                        data_minutes=data_minutes,
                                         mode=mode,
                                         time_format=time_format,
                                         include_today=include_today,
@@ -194,65 +200,77 @@
             {%- set today = state_attr(sensor, attr_today) | default([], true)-%}
             {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
             {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
-        {# Check if there is an all attribute in the sensor #}
-            {%- set all_check = all is list and all and all[0] is mapping -%}
-            {%- set today_check = not include_today or today is list and today and today[0] is mapping -%}
-            {%- set tomorrow_check = not include_tomorrow or tomorrow is list and today and today[0] is mapping -%}
-        {# Check if right attributes are already provided #}
-            {%- if all_check or (today_check or tomorrow_check) -%}
-                {%- set data = all or today + tomorrow -%}
-            {%- else -%}
-                {%- set attr_all = attr_all if all_check else _find_attr(sensor, 'all') | default('attr_all_not_found', true) -%}
-                {%- set all = all if all_check else state_attr(sensor, attr_all) | default([], true) -%}
-                {%- set all_check = all_check or (all is list and all and all[0] is mapping) -%}
-            {# use all atrribute if available, and otherwise use tomorrow and today #}
-                {%- if all_check -%}
-                    {%- set data = all -%}
-                {%- else -%}
-                {#- Check if data is available and as expected -#}
-                {#- try to find correct attributes if no valid data was found -#}
-                    {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default('attr_today_not_found', true) -%}
-                    {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default('attr_tomorrow_not_found', true)  -%}
-                {#- set set dataset with all attributes -#}
-                    {%- set today = state_attr(sensor, attr_today) | default([], true) -%}
-                    {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
-                    {%- set data = today + tomorrow -%}
-                {%- endif -%}
-            {%- endif -%}
-        {#- Try to find the right time_key and value_key if provided parameters are not found -#}
             {%- set day = timedelta(days=1) -%}
-            {#- time key -#}
-                {%- if data | count > 0 and data[0] is mapping and time_key not in data[0] -%}
-                    {%- set tk_list =
-                            data[0].items()
-                                | selectattr('1', 'datetime')
-                                | sort(attribute='1')
-                                | list
-                    -%}
-                    {%- if tk_list | count == 0 -%}
-                        {%- set dates_check = [(now() - day).date() | string, now().date() | string, (now() + day).date() | string] | join('|') -%}
+        {# check data if data_type is set to datetimes and values #}
+            {%- if datetime_in_data | bool(true) -%}
+            {# Check if there is an all attribute in the sensor #}
+                {%- set all_check = all is list and all | count > 0 and all[0] is mapping -%}
+                {%- set today_check = not include_today or today is list and today | count > 0 and today[0] is mapping -%}
+                {%- set tomorrow_check = not include_tomorrow or tomorrow is list and tomorrow | count > 0 and tomorrow[0] is mapping -%}
+            {# Check if right attributes are already provided #}
+                {%- if all_check or (today_check and tomorrow_check) -%}
+                    {%- set data = all or today + tomorrow -%}
+                {%- else -%}
+                    {%- set attr_all = attr_all if all_check else _find_attr(sensor, 'all') | default('attr_all_not_found', true) -%}
+                    {%- set all = all if all_check else state_attr(sensor, attr_all) | default([], true) -%}
+                    {%- set all_check = all_check or (all is list and all and all[0] is mapping) -%}
+                {# use all atrribute if available, and otherwise use tomorrow and today #}
+                    {%- if all_check -%}
+                        {%- set data = all -%}
+                    {%- else -%}
+                    {#- Check if data is available and as expected -#}
+                    {#- try to find correct attributes if no valid data was found -#}
+                        {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default('attr_today_not_found', true) -%}
+                        {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default('attr_tomorrow_not_found', true)  -%}
+                    {#- set set dataset with all attributes -#}
+                        {%- set today = state_attr(sensor, attr_today) | default([], true) -%}
+                        {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
+                        {%- set data = today + tomorrow -%}
+                    {%- endif -%}
+                {%- endif -%}
+            {#- Try to find the right time_key and value_key if provided parameters are not found -#}
+                {#- time key -#}
+                    {%- if data | count > 0 and data[0] is mapping and time_key not in data[0] -%}
                         {%- set tk_list =
                                 data[0].items()
-                                    | selectattr('1', 'string')
-                                    | selectattr('1', 'search', dates_check) 
+                                    | selectattr('1', 'datetime')
                                     | sort(attribute='1')
                                     | list
                         -%}
+                        {%- if tk_list | count == 0 -%}
+                            {%- set dates_check = [(now() - day).date() | string, now().date() | string, (now() + day).date() | string] | join('|') -%}
+                            {%- set tk_list =
+                                    data[0].items()
+                                        | selectattr('1', 'string')
+                                        | selectattr('1', 'search', dates_check) 
+                                        | sort(attribute='1')
+                                        | list
+                            -%}
+                        {%- endif -%}
+                        {%- if tk_list | count > 0 -%}
+                            {%- set time_key = tk_list[0][0] -%}
+                        {%- endif -%}
                     {%- endif -%}
-                    {%- if tk_list | count > 0 -%}
-                        {%- set time_key = tk_list[0][0] -%}
+                {#- value_key -#}
+                    {%- if data | count > 0 and data[0] is mapping and value_key not in data[0] -%}
+                        {%- set vk_list =
+                                data[0].items()
+                                    | selectattr('1', 'is_number')
+                                    | map(attribute='0')
+                                    | list
+                        -%}
+                        {%- set value_key = vk_list | first if vk_list else value_key -%}
                     {%- endif -%}
-                {%- endif -%}
-            {#- value_key -#}
-                {%- if data | count > 0 and data[0] is mapping and value_key not in data[0] -%}
-                    {%- set vk_list =
-                            data[0].items()
-                                | selectattr('1', 'is_number')
-                                | map(attribute='0')
-                                | list
-                    -%}
-                    {%- set value_key = vk_list | first if vk_list else value_key -%}
-                {%- endif -%}
+            {%- else -%}
+                {%- set data = today + tomorrow + all -%}
+                {%- set ns = namespace(data=[]) -%}
+                {%- for i in data -%}
+                    {%- set dt = today_at() + timedelta(minutes = data_minutes | int(60) * loop.index0) -%}
+                    {%- set price = i.values() | first if i is mapping else i -%}
+                    {%- set ns.data = ns.data + [{time_key: dt, value_key: price}] -%}
+                {%- endfor -%}
+                {%- set data = ns.data -%}
+            {%- endif -%}
         {#- check if sensor has valid data -#}
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
             {#- Rebuild data from sensor to generic format -#}
@@ -370,6 +388,8 @@
                                         attr_all=attr_all,
                                         time_key=time_key,
                                         value_key=value_key,
+                                        datetime_in_data=datetime_in_data,
+                                        data_minutes=data_minutes,
                                         mode=mode,
                                         time_format=time_format,
                                         include_today=include_today,
@@ -390,8 +410,9 @@
             {%- set defaults_used = dict(defaults.items() | select('in', macro_input.items()) | select('in', user_input.items())) -%}
             {%- set data_used = dict(today_count=today | count, tomorrow_count = tomorrow | count, all_count = all | count, data_count = data | count) -%}
         {%- endif -%}
-        {%- set data = data | default(none) -%}
+        {%- set data = data | default([]) -%}
     {#- Return error messages for input -#}
+        {%- set h = h | default(hours) | default(1) -%}
         {%- set start_end = start > end -%}
         {%- set end_start = ((end-start).total_seconds() / 3600) | round(3) if start is datetime and end is datetime else h -%}
         {%- set valid_sensor = sensor | has_value %}
