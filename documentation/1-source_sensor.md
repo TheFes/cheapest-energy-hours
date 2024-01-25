@@ -25,6 +25,12 @@ The key used in the attributes of your integration for the start times of the ho
 ***
 ### **value_key** <span style="color:grey">_string (default: price)_</span>
 The key used in the attributes of your integration for the price values
+***
+### **datetime_in_data** <span style="color:grey">_boolean (default: true)_</span>
+In case the source data only provides the price values, without information about the date and time, set this to `false`
+***
+### **data_minutes** <span style="color:grey">_integer (default: 60)_</span>
+The number of minutes each item in the source data represents. Only used in combination with `datetime_in_data=false`. Defaults to 1 hour (60 minutes)
 
 ## EXAMPLE
 
