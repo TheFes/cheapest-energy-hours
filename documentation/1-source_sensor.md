@@ -40,5 +40,16 @@ The number of minutes each item in the source data represents. Only used in comb
 {% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', attr_today="forecast_today", attr_tomorrow="prices_tomorrow", time_key="datetime", value_key="value") %}
 ```
 
+## DATA PROVIDER SETTINGS
+
+This section will give the attribute and key settings for energy providers. The name links to the (custom) component used for the data.
+If your provider is missing, you can create a Pull Request to add them, or create an [issue](<https://github.com/TheFes/cheapest-energy-hours/issues/new>), and give the details there so I can add them.
+
+|Data Provider|parameters|comment|
+|---|---|---|
+|[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', date_key='time', value_key='price'`||
+|[Nordpool](<https://github.com/custom-components/nordpool>)||all set by default|
+|[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
+
 ### NAVIGATION
 [PREVIOUS: CONTENTS](./0-how-to.md) | [CONTENTS](0-how-to.md) | [NEXT: BASIC DATA](2-basic_data.md)
