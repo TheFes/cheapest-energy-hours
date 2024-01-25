@@ -5,6 +5,7 @@ These parameters are used to determine where the source data can be found. If yo
 ## 🚨 IMPORTANT NOTES 🚨
 * It is advised to provice all parameters if they don't match the defaults. Although the macro will search for the attributes and keys, it is more resource friendly if they are already provided.
 * If your sensor uses other attributes for the data of today and tomorrow you need to provide the correct `sensor` parameter or the correct `attr_today` and `attr_tomorrow` parameters. It can't find the right sensor if the atrributes differ from the defaults, and it can't find the right attributes if the right sensor is not provided.
+* In case `datetime_in_data` is set to `false` the attribute finder will not work, you need to make sure to set `attr_today`, `attr_tomorrow` and/or `attr_all` yourself.
 
 ## PARAMETERS
 
