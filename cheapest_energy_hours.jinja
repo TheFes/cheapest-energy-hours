@@ -1,4 +1,4 @@
-{%- set _version = '5.1.0'-%}
+{%- set _version = '5..0'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -116,6 +116,8 @@
                                     include_tomorrow=false,
                                     lowest=true,
                                     look_ahead=false,
+                                    latest_possible=true,
+                                    price_tolerance=0,
                                     precision=5,
                                     price_factor=1,
                                     no_weight_points=none,
@@ -150,6 +152,8 @@
                                         include_tomorrow=false,
                                         lowest=true,
                                         look_ahead=false,
+                                        latest_possible=true,
+                                        price_tolerance=0,
                                         precision=5,
                                         price_factor=1,
                                         no_weight_points=none,
@@ -179,6 +183,8 @@
                                         include_tomorrow=include_tomorrow,
                                         lowest=lowest,
                                         look_ahead=look_ahead,
+                                        latest_possible=latest_possible,
+                                        price_tolerance=price_tolerance,
                                         precision=precision,
                                         price_factor=price_factor,
                                         no_weight_points=no_weight_points,
@@ -396,6 +402,8 @@
                                         include_tomorrow=include_tomorrow,
                                         lowest=lowest,
                                         look_ahead=look_ahead,
+                                        latest_possible=latest_possible,
+                                        price_tolerance=price_tolerance,
                                         precision=precision,
                                         price_factor=price_factor,
                                         no_weight_points=no_weight_points,
@@ -575,7 +583,7 @@
                             {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
                     {%- else -%}
                         {#- create output for all modes -#}
-                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, time_min=none, time_max=none, list=[], is_now=false) -%}
+                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, lowest=none, time_min=none, time_max=none, list=[], is_now=false) -%}
                             {%- set last_values = (h * no_weight_points) | round(0) | int -%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
                                 {%- set prices_list = values[i:i + last_values] | map(attribute=value_key) | list -%}
@@ -589,14 +597,15 @@
                                     {%- else -%}
                                         {%- set a = prices_list | sum / dp -%}
                                     {%- endif -%}
-                                {%- set b = output.weighted_average -%}
+                                {%- set b = output.lowest | default(0, true) + (price_tolerance * (1 if lowest else -1)) -%}
                                 {%- set min, max = prices_list | min, prices_list | max -%}
-                                {%- if loop.first or ((a < b) if lowest else (a > b)) -%}
+                                {%- if loop.first or (((a <= b) if lowest else (a >= b)) if latest_possible else ((a < b) if lowest else (a > b))) -%}
                                     {%- set pr = precision | default(5) -%}
                                     {%- set output.list = prices_list | map('round', pr) | list -%}
                                     {%- set output.min = min | round(pr) -%}
                                     {%- set output.max = max | round(pr) -%}
                                     {%- set output.weighted_average = a | round(pr) -%}
+                                    {%- set output.lowest = a if output.lowest is none else [output.lowest, a] | min -%}
                                     {%- set output.average = prices_list | average | round(pr) -%}
                                     {%- set output.start = _format_date(values[i][time_key], time_format | default(none)) -%}
                                     {%- set output.end = _format_date(values[i][time_key] + timedelta(hours=h), time_format | default(none)) -%}
@@ -623,7 +632,7 @@
                                                         datapoints_per_hour=dph,
                                                         hours=h | round(2),
                                                         datapoints=dp
-                                                    )
+                                                    ) | to_json
                                 -%}
                             {%- else -%}
                                 {%- set macro_output = output[mode] -%}
@@ -649,7 +658,6 @@
                             ) | to_json
                     -}}
                 {%- else -%}
-                    {%- set macro_output = macro_output | to_json if mode in ['split', 'all'] else macro_output -%}
                     {{- macro_output -}}
                 {%- endif -%}
         {%- endif -%}
