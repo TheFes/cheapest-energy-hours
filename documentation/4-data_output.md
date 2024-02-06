@@ -7,7 +7,7 @@
 ## PARAMETERS
 
 ### **mode** <span style="color:grey">_string (default: start)_</span>
-See [seperate section](#output-modes
+See [seperate section](#output-modes)
 ***
 ### **split** <span style="color:grey">_boolean (default: false)_</span>
 Splits the `hours` input into sections with the chepest prices. So it will not alwasy be a consecutive block of hours, but it will select all the lowest time sections within your selection. `weight` will not be used when `split=true`
@@ -26,6 +26,13 @@ All prices will be multiplied with this value, so if your prices are in cents an
 ***
 ### **lowest** <span style="color:grey">_bolean (default: true)_</span>
 Determines if the marco should find the lowest price, set to `false` to find the highest price
+***
+### **latest_possible** <span style="color:grey">_boolean (default: false)_</span>
+By default the macro will return the first time block with the cheapest (or highest when `lowest` is set to `false`). When `latest_possible` is set to `true` it will return the last time block with the cheapest prices.
+***
+### **price_tolerance** <span style="color:grey">_float (default: 0.0)_</span>
+When set, prices which are within the price_tolerance compared to the lowest price (highest when `lowest` is set to `false`) are also considered as the lowest (or hightest) price.
+***
 ### **value_on_error** <span style="color:grey">_anything (default: none)_</span>
 Will be used as output instead of error messages, so for eg in combination with `mode="is_now"` this can be used to set the output to `false` when there is an error by setting `value_on_error=false`
 

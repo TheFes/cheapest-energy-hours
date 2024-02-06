@@ -8,6 +8,7 @@ The macro will display error messages as output in case of incorrect input.
 |Time key not found in data|The time key can not be found in the source data, you might need to proviee a `time_key` parameter|
 |Value key not found in data|The value key can not be found in the source data, you might need to provide a `value_key` parameter|
 |Boolean input expected for {parameter}|The mentioned parameter expects a boolean input, but something else is provided. You can provice values like `0`, `false`, `"True"` but not `"banana"`|
+|Numeric input expected for {parameter}|The mentioned parameter expects a boolean input, but something else is provided. You can provice values like `0`, `"0.02"`, `"3"` but not `"orange"`|
 |Invalid mode selected|An invalid value for the `mode` parameter was provided, check your input|
 |Selected program is not available or has no data|The value provided for the `program` parameter can not be found in the sensor, or has no data|
 |Data plot for selected program not complete|The data plot for the value in the `program` parameter is incomplete|
