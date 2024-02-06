@@ -31,7 +31,7 @@ Determines if the marco should find the lowest price, set to `false` to find the
 By default the macro will return the first time block with the cheapest (or highest when `lowest` is set to `false`). When `latest_possible` is set to `true` it will return the last time block with the cheapest prices.
 ***
 ### **price_tolerance** <span style="color:grey">_float (default: 0.0)_</span>
-When set, the (weighted) average of the hours taken into account will be accepted as cheapest, if they are within the set tolerance of the real lowest average. Most useful in combination with `lastest_possible`
+When set, prices which are within the price_tolerance compared to the lowest price (highest when `lowest` is set to `false`) are also considered as the lowest (or hightest) price.
 ***
 ### **value_on_error** <span style="color:grey">_anything (default: none)_</span>
 Will be used as output instead of error messages, so for eg in combination with `mode="is_now"` this can be used to set the output to `false` when there is an error by setting `value_on_error=false`
