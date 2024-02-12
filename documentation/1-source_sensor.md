@@ -48,6 +48,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |Data Provider|parameters|comment|
 |---|---|---|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
+|EnergyZero|`attr_all='Prices', time_key ='readingDate'`||
 |[Nordpool](<https://github.com/custom-components/nordpool>)||all set by default|
 |[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|`attr_all='forecast', value_key='electricity_price'`||
