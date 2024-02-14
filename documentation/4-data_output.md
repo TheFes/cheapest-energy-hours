@@ -91,6 +91,7 @@ Will be used as output instead of error messages, so for eg in combination with 
 |`average`|The average of all the prices|
 |`weighted_average`|The same as `mode="average"` as `weight` is not used in split|
 |`is_now`|Returns `"true"` if the current time is within any of the time blocks otherwise it will return `"false"`|
+|`extreme_now`|Retruns `"true"` if the current time is matches the lowest (or highest) price in the time range. Can be used in combination with `price_tolerance`|
 |`all`|Outputs the data of all time blocks in a dictionary|
 |`split`|This will output the same as when `split=true, mode="all"` is set
 
