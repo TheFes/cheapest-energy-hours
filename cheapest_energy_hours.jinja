@@ -543,7 +543,7 @@
                             {%- for i in range(dp) -%}
                                 {%- set dt = values[loop.index0][time_key] -%}
                                 {%- if i > 0 and values[loop.index0 - 1][time_key] != dt - timedelta(hours=1/dph) -%}
-                                    {%- set is_now = split.start < now() < split.start + timedelta(hours=split.datapoints/dph) -%}
+                                    {%- set is_now = split.start <= now() < split.start + timedelta(hours=split.datapoints/dph) -%}
                                     {%- set prices = split.prices -%}
                                     {%- set split.split = split.split + [
                                                                             dict(
@@ -565,7 +565,7 @@
                                     {%- set price = values[loop.index0][value_key] if pt == 0 else values[loop.index0].original_value %}
                                     {%- set split.prices = split.prices + [price | round(pr)] -%}
                                     {%- if loop.last -%}
-                                        {%- set is_now = split.start < now() < dt + timedelta(hours=1/dph) -%}
+                                        {%- set is_now = split.start <= now() < dt + timedelta(hours=1/dph) -%}
                                         {%- set prices = split.prices -%}
                                         {%- set split.split = split.split + [
                                                                                 dict(
@@ -587,7 +587,7 @@
                             {%- set min, max = list | min, list | max -%}
                             {%- set time_min = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', min) | map(attribute='start') | first -%}
                             {%- set time_max = split_all | selectattr('prices', 'defined') | selectattr('prices', 'contains', max) | map(attribute='start') | first -%}
-                            {%- set is_now = time_max | selectattr('is_now', 'defined') | selectattr('is_now') | list | count > 0 -%}
+                            {%- set is_now = split_all | selectattr('is_now', 'defined') | selectattr('is_now') | list | count > 0 -%}
                             {%- set output = dict(
                                                     list = list | map('round', pr) | list,
                                                     min = min | round(pr),
