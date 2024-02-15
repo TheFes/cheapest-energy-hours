@@ -430,6 +430,7 @@
         {%- set start_end = start > end -%}
         {%- set end_start = ((end-start).total_seconds() / 3600) | round(3) if start is datetime and end is datetime else h -%}
         {%- set valid_sensor = sensor | has_value %}
+        {%- set valid_pt = (price_tolerance is string and price_tolerance[-1] == '%' and price_tolerance[:-1] | is_number) or price_tolerance | is_number%}
         {%- set errors = [
                             "No valid sensor found" if not valid_sensor,
                             "No valid data in {}".format(sensor) if data == [] and valid_sensor,
@@ -441,7 +442,7 @@
                             "Boolean input expected for look_ahead, '{}' can not be processed as a boolean".format(look_ahead) if look_ahead | bool("") is not boolean,
                             "Boolean input expected for lowest, '{}' can not be processed as a boolean".format(lowest) if lowest | bool("") is not boolean,
                             "Boolean input expected for latest_possible, '{}' can not be processed as a boolean".format(latest_possible) if latest_possible | bool("") is not boolean,
-                            "Numeric input expected for price_tolerance, '{}' can not be processed as a float".format(price_tolerance) if not price_tolerance | is_number,
+                            "Numeric input or percentage expected for price_tolerance, '{}' can not be processed as a float or percentage".format(price_tolerance) if not valid_pt,
                             "Selected program '{}' is not available or has no data".format(program) if program is not none and w is none,
                             "Selected start parameter is after the end parameter" if start_end and data,
                             "{} hours between start and end, where {} hours are required".format(end_start, h | round(3)) if not start_end and end_start < h and data,
@@ -500,9 +501,11 @@
             {#- Check if there is data, and find the right hour block -#}
                 {%- if values | count >= dp -%}
                     {# apply price_tolerance if provided #}
-                    {%- set pt = price_tolerance | float -%}
+                    {%- set pt_perc = '%' in price_tolerance | string -%}
+                    {%- set pt = price_tolerance | replace('%', '') | float / 100 if pt_perc else price_tolerance | float -%}
                     {%- if pt != 0 %}
                         {%- set base_price = values | map(attribute=value_key) | min if lowest else values | map(attribute=value_key) | max -%}
+                        {%- set pt = base_price * pt if pt_perc else pt -%}
                         {%- set ns = namespace(new_values=[]) -%}
                         {%- for v in values %}
                             {%- set original = v[value_key] -%}
@@ -659,9 +662,9 @@
                             {%- endfor -%}
                         {#- determine extreme_now -#}
                             {%- 
-                                set compare_price = values | map(attribute=value_key) | min + price_tolerance 
+                                set compare_price = values | map(attribute=value_key) | min + pt
                                 if lowest
-                                else values | map(attribute=value_key) | max - price_tolerance
+                                else values | map(attribute=value_key) | max - pt
                             -%}
                             {%- set current_price = values | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first -%}
                             {%- set output.extreme_now = current_price <= compare_price if lowest else current_price >= compare_price -%}
