@@ -37,7 +37,7 @@ Description of data used in the energy plot sensor. Automatically adds the weigh
 ## EXAMPLE
 
 ```jinja
-{% from "cheapest_energy_hours.jinja" import cheapest_energy_hours %}
+{% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
 {% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', no_weight_points=2, weight=[2, 1, 1.5, 3, 3]) %}
 ```
 

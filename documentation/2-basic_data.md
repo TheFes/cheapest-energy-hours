@@ -36,8 +36,8 @@ Set to `true` to only include prices as of now. If combined with `start` the lat
 ## EXAMPLE
 
 ```jinja
-{% from "cheapest_energy_hours.jinja" import cheapest_energy_hours %}
-{% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', hours=2.25, start="12:00", end=today_at("19:00") + timedelta(days=1), look_ahead=true) %}
+{% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
+{% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', hours=2.25, start='12:00', end=today_at('19:00') + timedelta(days=1), look_ahead=true) %}
 ```
 
 ### NAVIGATION
