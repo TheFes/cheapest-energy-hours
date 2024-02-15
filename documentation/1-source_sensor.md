@@ -47,10 +47,37 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 |Data Provider|parameters|comment|
 |---|---|---|
+|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
 |[Nordpool](<https://github.com/custom-components/nordpool>)||all set by default|
 |[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|`attr_all='forecast', value_key='electricity_price'`||
+
+## CREATING A FORECAST SENSOR USING THE SERVICE CALL
+
+Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) integration) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices. Prices will be fetched every hour and on Home Assistant startup.
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/1"
+      - platform: homeassistant
+        event: start
+    action:
+      - service: energyzero.get_energy_prices
+        data:
+          incl_vat: true
+          config_entry: fe7bdc80dd3bc850138998d869f1f19d
+          start: "{{ today_at() - timedelta(days=1) }}"
+          end: "{{ today_at() + timedelta(days=2) }}"
+        response_variable: prices
+    sensor:
+      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
+        name: Energy Zero prices
+        state: "{{ prices.prices | selectattr('timestamp', '<=', utcnow().strftime('%Y-%m-%d %H:%M:%S+00:00')) | map(attribute='price') | list | last }}"
+        attributes:
+          prices: "{{ prices.prices }}"
+```
 
 ### NAVIGATION
 [PREVIOUS: CONTENTS](./0-how-to.md) | [CONTENTS](0-how-to.md) | [NEXT: BASIC DATA](2-basic_data.md)
