@@ -47,6 +47,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 |Data Provider|parameters|comment|
 |---|---|---|
+|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
 |[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
 |[Nordpool](<https://github.com/custom-components/nordpool>)||all set by default|
@@ -55,7 +56,13 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 ## CREATING A FORECAST SENSOR USING THE SERVICE CALL
 
-Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) integration) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
+Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/> and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
+
+Notes:
+* The example below is for EnergyZero, for EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
+* The `config_entry` value in the service call will differ for each HA instance. The easiest way to get yours is to go to [Developer tools > Services](<https://my.home-assistant.io/create-link/?redirect=developer_services>) and select the service call. The make sure you are in UI Mode, and select the right config entry. Switch to YAML mode to see the config entry.
+* When `incl_vat` is set to `true`, the EnergyZero API will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below)
+
 ```yaml
 template:
   - trigger:
@@ -66,7 +73,7 @@ template:
     action:
       - service: energyzero.get_energy_prices
         data:
-          incl_vat: true
+          incl_vat: false
           config_entry: fe7bdc80dd3bc850138998d869f1f19d
           start: "{{ today_at() - timedelta(days=1) }}"
           end: "{{ today_at() + timedelta(days=2) }}"
