@@ -36,8 +36,8 @@ The number of minutes each item in the source data represents. Only used in comb
 ## EXAMPLE
 
 ```jinja
-{% from "cheapest_energy_hours.jinja" import cheapest_energy_hours %}
-{% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', attr_today="forecast_today", attr_tomorrow="prices_tomorrow", time_key="datetime", value_key="value") %}
+{% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
+{% set output = cheapest_energy_hours(sensor='sensor.cheap_energy', attr_today='forecast_today', attr_tomorrow='prices_tomorrow', time_key='datetime', value_key='value') %}
 ```
 
 ## DATA PROVIDER SETTINGS
