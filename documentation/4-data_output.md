@@ -52,6 +52,7 @@ Will be used as output instead of error messages, so for eg in combination with 
 |`weighted_average`|The average price taking into account the weight assigned to the different time sections|
 |`is_now`|Returns `"true"` if the current time is within the consecutive based on your selection, otherwise `"false"`|
 |`extreme_now`|Retruns `"true"` if the current time matches the lowest (or highest in case `lowest=false`) price in the time range. Can be used in combination with `price_tolerance`|
+|`estimated_costs`|Returns the estimated costs based on the `kwh` and optionally the `weight` input|
 |`all`|Outputs all the above modes in a json string dictionary. Convert to a actual dictionary using `from_json`. This can be useful if you need more than one output mode for the same selection. Besides the data from all modes above, it will also output the number of hours used for the calculation (it can differ from the input because of the calculation to split the data), the number or datapoints per hour used for the calculations, and the total number of datapoints. [example](#example-output-modeall|
 |`split`|This will output the same as when `split=true, mode="all"` is set
 
@@ -73,6 +74,7 @@ Will be used as output instead of error messages, so for eg in combination with 
   ],
   "is_now": false,
   "extreme_now": false,
+  "estimated_costs": 0.243,
   "no_weight_points": 2,
   "datapoints_per_hour": 2,
   "hours": 1.5,
