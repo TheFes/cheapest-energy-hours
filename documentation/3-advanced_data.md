@@ -25,6 +25,9 @@ The number of weight points per hour, e.g. set to `4` if each weight point repre
 ### **weight** <span style="color:grey">_list (default: none)_</span>
 The list with weight factors to be used for the calculation.
 ***
+### **kwh** <span style="color:grey">_float (default: none)_</span>
+The kWh usage for the total number of hours, required to calculate the estimated costs.
+***
 ### **plot_sensor** <span style="color:grey">_string (default: sensor.energy_plots)_</span>
 The `entity_id` of the sensor with the energy plots.
 ***
@@ -32,7 +35,7 @@ The `entity_id` of the sensor with the energy plots.
 The attribute in which the enery plots are stored.
 ***
 ### **program** <span style="color:grey">_string (default: none)_</span>
-Description of data used in the energy plot sensor. Automatically adds the weight and number of weight points based on the energy plot.
+Description of data used in the energy plot sensor. Automatically adds the weight, number of weight points and kWh based on the energy plot.
 
 ## EXAMPLE
 

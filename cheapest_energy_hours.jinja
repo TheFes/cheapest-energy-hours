@@ -122,6 +122,7 @@
                                     price_factor=1,
                                     no_weight_points=none,
                                     weight=none,
+                                    kwh=none,
                                     program=none,
                                     plot_sensor='sensor.energy_plots',
                                     plot_attr='energy_plots',
@@ -130,7 +131,7 @@
                                     datapoints_per_hour='depreciated',
                                     look_ahead_minutes='depreciated'
                                 ) -%}
-    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now', 'extreme_now'] -%}
+    {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now', 'extreme_now', 'estimated_costs'] -%}
     {#- set input for debugging -#}
         {%- if debug -%}
             {%- set defaults = dict(
@@ -158,6 +159,7 @@
                                         price_factor=1,
                                         no_weight_points=none,
                                         weight=none,
+                                        kwh=none,
                                         program=none,
                                         plot_sensor='sensor.energy_plots',
                                         plot_attr='energy_plots',
@@ -189,6 +191,7 @@
                                         price_factor=price_factor,
                                         no_weight_points=no_weight_points,
                                         weight=weight,
+                                        kwh=kwh,
                                         program=program,
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
@@ -295,6 +298,7 @@
                     {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
                     {%- set weight = plot_data.get(program, {}).get('data') | default(none, true) -%}
                     {%- set no_weight_points = plot_data.get(program, {}).get('no_weight_points', 1) -%}
+                    {%- set kwh = plot_data.get(program, {}).get('kwh_used', none) -%}
                 {%- endif -%}
                 {%- set w = weight | map('float', none) | reject('none') | list
                             if weight is list
@@ -414,6 +418,7 @@
                                         price_factor=price_factor,
                                         no_weight_points=no_weight_points,
                                         weight=w | default(none),
+                                        kwh=kwh,
                                         program=program,
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
@@ -443,6 +448,7 @@
                             "Boolean input expected for lowest, '{}' can not be processed as a boolean".format(lowest) if lowest | bool("") is not boolean,
                             "Boolean input expected for latest_possible, '{}' can not be processed as a boolean".format(latest_possible) if latest_possible | bool("") is not boolean,
                             "Numeric input or percentage expected for price_tolerance, '{}' can not be processed as a float or percentage".format(price_tolerance) if not valid_pt,
+                            "Numeric input expected for kwh, '{}' can not be processed as a float".format(kwh) if kwh is not none and not kwh | is_number,
                             "Selected program '{}' is not available or has no data".format(program) if program is not none and w is none,
                             "Selected start parameter is after the end parameter" if start_end and data,
                             "{} hours between start and end, where {} hours are required".format(end_start, h | round(3)) if not start_end and end_start < h and data,
@@ -615,7 +621,7 @@
                             {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
                     {%- else -%}
                         {#- create output for all modes -#}
-                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, compare=none, time_min=none, time_max=none, list=[], is_now=false, extreme_now=none) -%}
+                            {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, compare=none, time_min=none, time_max=none, list=[], is_now=false, extreme_now=none, estimated_costs="unknown") -%}
                             {%- set last_values = (h * no_weight_points) | round(0) | int -%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
                                 {%- set prices_list = values[i:i + last_values] | map(attribute=value_key) | list -%}
@@ -660,13 +666,30 @@
                                     {%- set output.is_now = values[i][time_key] < now() < values[i][time_key] + timedelta(hours=h) -%}
                                 {%- endif -%}
                             {%- endfor -%}
+                        {#- determine estimated_costs if kwh is provided -#}
+                            {%- if kwh is not none -%}
+                                {%- set price_count = output.list | count %}
+                                {%- if w is none -%}
+                                    {%- set kwh_list = [kwh/price_count] * price_count -%}
+                                {%- else -%}
+                                    {%- set ns = namespace(kwh_list=[]) -%}
+                                    {%- for i in w -%}
+                                        {%- set ns.kwh_list = ns.kwh_list + [kwh * (i/w | sum)] -%}
+                                    {%- endfor -%}
+                                    {%- set kwh_list = ns.kwh_list-%}
+                                {%- endif -%}
+                                {%- set output.estimated_costs = 0 -%}
+                                {%- for p in output.list -%}
+                                    {%- set output.estimated_costs = (output.estimated_costs + p * kwh_list[loop.index0]) | round(pr) -%}
+                                {%- endfor -%}
+                            {%- endif -%}
                         {#- determine extreme_now -#}
                             {%- 
                                 set compare_price = values | map(attribute=value_key) | min + pt
                                 if lowest
                                 else values | map(attribute=value_key) | max - pt
                             -%}
-                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first | default(99 if lowest else 0) -%}
+                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first -%}
                             {%- set output.extreme_now = current_price <= compare_price if lowest else current_price >= compare_price -%}
                         {#- output date based on the selected mode -#}
                             {%- if mode == 'all' -%}
@@ -682,6 +705,7 @@
                                                         list=output.list,
                                                         is_now=output.is_now,
                                                         extreme_now=output.extreme_now,
+                                                        estimated_costs=output.estimated_costs,
                                                         datapoints_per_hour=dph,
                                                         hours=h | round(2),
                                                         datapoints=dp
