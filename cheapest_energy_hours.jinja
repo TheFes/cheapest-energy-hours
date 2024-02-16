@@ -666,7 +666,7 @@
                                 if lowest
                                 else values | map(attribute=value_key) | max - pt
                             -%}
-                            {%- set current_price = values | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first -%}
+                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first | default(99 if lowest else 0) -%}
                             {%- set output.extreme_now = current_price <= compare_price if lowest else current_price >= compare_price -%}
                         {#- output date based on the selected mode -#}
                             {%- if mode == 'all' -%}
