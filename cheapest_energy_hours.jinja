@@ -727,7 +727,7 @@
                     {{- dict(
                                 version=_version,
                                 output=macro_output,
-                                error=false,
+                                error=true if error_msg is defined else false,
                                 non_default_user_input=non_default,
                                 set_by_macro=set_by_macro,
                                 defaults_used=defaults_used,
