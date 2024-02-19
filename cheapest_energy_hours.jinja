@@ -1,4 +1,4 @@
-{%- set _version = '5.4.0'-%}
+{%- set _version = '5.4.1'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -727,7 +727,7 @@
                     {{- dict(
                                 version=_version,
                                 output=macro_output,
-                                error=false,
+                                error=true if error_msg is defined else false,
                                 non_default_user_input=non_default,
                                 set_by_macro=set_by_macro,
                                 defaults_used=defaults_used,
