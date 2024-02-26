@@ -574,6 +574,20 @@
                                     {%- set split.datapoints = 1 -%}
                                     {%- set price = values[loop.index0][value_key] if pt == 0 else values[loop.index0].original_value %}
                                     {%- set split.prices = [price | round(pr)] -%}
+                                    {%- if loop.last -%}
+                                        {%- set is_now = split.start <= now() < dt + timedelta(hours=1/dph) -%}
+                                        {%- set prices = split.prices -%}
+                                        {%- set split.split = split.split + [
+                                                                                dict(
+                                                                                        start=_format_date(split.start, time_format),
+                                                                                        end=_format_date(dt + timedelta(hours=1/dph), time_format),
+                                                                                        hours=(split.datapoints/dph)|round(2),
+                                                                                        prices=prices,
+                                                                                        is_now=is_now
+                                                                                    )
+                                                                            ]
+                                        -%}
+                                    {%- endif -%}
                                 {%- else -%}
                                     {%- set split.start = split.start | default(dt, true) -%}
                                     {%- set split.datapoints = split.datapoints + 1 -%}
