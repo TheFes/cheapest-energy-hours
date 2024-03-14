@@ -1,4 +1,4 @@
-{%- set _version = '5.4.2'-%}
+{%- set _version = '5.4.3'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -368,11 +368,11 @@
                 {#- start -#}
                     {%- set seconds = start.minute * 60 + start.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=before, mode='remain') | int -%}
-                    {%- set start = start + timedelta(seconds=remain * -1 if mode == 'is_now' else 1) -%}
+                    {%- set start = start + timedelta(seconds=remain * (-1 if mode == 'is_now' else 1)) -%}
                 {#- end -#}
                     {%- set seconds = end.minute * 60 + end.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=before, mode='remain') | int -%} 
-                    {%- set end = end + timedelta(seconds=remain * -1 if mode == 'is_now' else 1) -%}
+                    {%- set end = end + timedelta(seconds=remain * (-1 if mode == 'is_now' else 1)) -%}
             {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
                     {%- if w | count <= h * no_weight_points -%}
