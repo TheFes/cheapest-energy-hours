@@ -1,4 +1,4 @@
-{%- set _version = '5.4.1'-%}
+{%- set _version = '5.4.2'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -314,6 +314,7 @@
                 {%- endif -%}
             {#- convert start and end input to local datetime -#}
                 {%- set n = now().replace(microsecond=0) -%}
+                {%- set before = true if mode == 'is_now' else false -%}
                 {#- start -#}
                     {%- if start is datetime -%}
                         {%- set start = start.replace(microsecond=0) | as_local -%}
@@ -322,13 +323,13 @@
                     {%- else -%}
                         {%- set start = today_at(start) if start is string and ':' in start and start | replace(':', '') | is_number else today_at() -%}
                         {%- set start = start if include_today else start + day -%}
-                        {%- if look_ahead -%}
-                            {%- set start = [n, start] | max -%}
-                        {%- endif -%}
+                    {%- endif -%}
+                    {%- if look_ahead -%}
+                        {%- set start = [n, start] | max -%}
                     {%- endif -%}
                     {%- set seconds = start.minute * 60 + start.second -%}
-                    {%- set remain = _div_calc(seconds, h, dph, before=true if mode == 'is_now' else false, mode='remain') | int -%}
-                    {%- set start_dph = _div_calc(seconds, h, dph, before=true) | int -%}
+                    {%- set remain = _div_calc(seconds, h, dph, before=before, mode='remain') | int -%}
+                    {%- set start_dph = _div_calc(seconds, h, dph, before=before) | int -%}
                 {#- end -#}
                     {%- if end is datetime -%}
                         {%- set end = end.replace(microsecond=0) | as_local -%}
@@ -363,15 +364,15 @@
             {#- calculate start, end and h based on dph -#}
                 {#- h -#}
                     {%- set seconds = (h % 1 * 3600) | round(0) -%}
-                    {%- set h = _div_calc(seconds, h, dph, no_weight_points, mode='hours') | float -%}
+                    {%- set h = _div_calc(seconds, h, dph, no_weight_points, mode='hours', before=before) | float -%}
                 {#- start -#}
                     {%- set seconds = start.minute * 60 + start.second -%}
-                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=true if mode == 'is_now' else false, mode='remain') | int -%} 
-                    {%- set start = start - timedelta(seconds=remain) -%}
+                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=before, mode='remain') | int -%}
+                    {%- set start = start + timedelta(seconds=remain * -1 if mode == 'is_now' else 1) -%}
                 {#- end -#}
                     {%- set seconds = end.minute * 60 + end.second -%}
-                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, mode='remain') | int -%} 
-                    {%- set end = end + timedelta(seconds=remain) -%}
+                    {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=before, mode='remain') | int -%} 
+                    {%- set end = end + timedelta(seconds=remain * -1 if mode == 'is_now' else 1) -%}
             {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
                     {%- if w | count <= h * no_weight_points -%}
