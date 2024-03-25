@@ -56,7 +56,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 ## CREATING A FORECAST SENSOR USING THE SERVICE CALL
 
-Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/> and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
+Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
 
 Notes:
 * The example below is for EnergyZero, for EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
