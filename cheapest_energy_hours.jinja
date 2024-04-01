@@ -1,4 +1,4 @@
-{%- set _version = 'v5.4.4'-%}
+{%- set _version = 'v5.5.0'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -373,6 +373,9 @@
                     {%- set seconds = end.minute * 60 + end.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=before, mode='remain') | int -%} 
                     {%- set end = end + timedelta(seconds=remain * (-1 if mode == 'is_now' else 1)) -%}
+                {#- set hours if in case hours='all' -#}
+                    {%- set h_all = (end-start).total_seconds() / 3600 -%}
+                    {%- set h = h_all if hours is defined and hours == 'all' else h | default(hours) | default(1) -%}
             {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
                     {%- if w | count <= h * no_weight_points -%}
@@ -452,7 +455,7 @@
                             "Numeric input expected for kwh, '{}' can not be processed as a float".format(kwh) if kwh is not none and not kwh | is_number,
                             "Selected program '{}' is not available or has no data".format(program) if program is not none and w is none,
                             "Selected start parameter is after the end parameter" if start_end and data,
-                            "{} hours between start and end, where {} hours are required".format(end_start, h | round(3)) if not start_end and end_start < h and data,
+                            "{} hours between start and end, where {} hours are required".format(end_start, h | round(3)) if not start_end and end_start < h | round(3) and data,
                             "Invalid combination of source data points per hour '{}' and number of weight points '{}'".format(dp, dph) if data and not wp_check
                         ] | select() | list
         -%}

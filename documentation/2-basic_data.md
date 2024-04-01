@@ -15,7 +15,7 @@
 ## PARAMETERS
 
 ### **hours** <span style="color:grey">_float (default: 1)_</span>
-The number of consecutive hours to be used, can be any number. If it is not a whole number, it will be converted so that the number of minutes are divisible by either 5, 10, 12, 15 or 30 minutes.
+The number of consecutive hours to be used, can be any number. If it is not a whole number, it will be converted so that the number of minutes are divisible by either 5, 10, 12, 15 or 30 minutes. Can be set to `'all'` to include all hours between the start and end time.
 ***
 ### **start** <span style="color:grey">_time string, datetime (string), number (default: 00:00)_</span>
 The start time to take into consideration for the value selection. By default it will be last midnight.
