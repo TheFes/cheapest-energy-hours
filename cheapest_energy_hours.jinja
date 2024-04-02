@@ -375,7 +375,9 @@
                     {%- set remain = _div_calc(seconds, h, dph, no_weight_points, before=before, mode='remain') | int -%} 
                     {%- set end = end + timedelta(seconds=remain * (-1 if mode == 'is_now' else 1)) -%}
                 {#- set hours if in case hours='all' -#}
-                    {%- set h_all = (end.astimezone(utcnow().tzinfo)-start.astimezone(utcnow().tzinfo)).total_seconds() / 3600 -%}
+                    {%- set end_data = (data | last)[time_key] + timedelta(hours=1/dph) -%}
+                    {%- set end_data = [end, end_data] | min -%}
+                    {%- set h_all = (end_data.astimezone(utcnow().tzinfo)-start.astimezone(utcnow().tzinfo)).total_seconds() / 3600 -%}
                     {%- set h = h_all if hours is defined and hours == 'all' else h | default(hours | default(1) | float(1)) -%}
             {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
@@ -744,7 +746,7 @@
                     {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
                 {%- endif -%}
                 {%- if debug -%}
-                    {%- set dict_add = dict(values_count=values|count, datapoints_source=datapoints_source, datapoints_used=datapoints_used, original_prices=output.prices_list, kwh_list=kwh_list | default([])) -%}
+                    {%- set dict_add = dict(values_count=values|count, datapoints_source=datapoints_source, datapoints_used=datapoints_used, original_prices=output.prices_list, price_count=price_count, kwh_list=kwh_list) -%}
                     {{- dict(
                                 version=_version,
                                 output=macro_output,
