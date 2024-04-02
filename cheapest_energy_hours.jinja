@@ -62,7 +62,7 @@
 {%- endmacro -%}
 
 {#- sub-macro to caluclate hours and times based on datatpoints per hour -#}
-{%- macro _div_calc(seconds, hours, dph, wph, before=false, mode='dph') -%}
+{%- macro _div_calc(seconds, hrs, dph, wph, before=false, mode='dph') -%}
     {#- check against dph provided -#}
         {%- set div_list = [3600, 1800, 1200, 900, 720, 600, 300]-%}
         {%- set div_list = div_list if wph is not defined or wph is none else [3600/wph] -%}
@@ -76,7 +76,7 @@
         {%- endfor -%}
         {%- set div_list = div_list | reject('in', ns.div_reject) | list -%}
     {#- find best dph setting -#}
-        {%- set ns = namespace(r=0, wp=dph | default(1), h=hours | default(1)) -%} 
+        {%- set ns = namespace(r=0, wp=dph | default(1), h=hrs | default(1)) -%} 
         {%- for div in div_list -%}
             {%- if seconds % div == 0 -%}
                 {%- set remain = 0 -%}
@@ -88,7 +88,7 @@
             {%- if remain < ns.r or loop.first -%}
                 {%- set ns.r = remain -%}
                 {%- set ns.wp = (3600 / div) | int -%}
-                {%- set ns.h = ((hours * 3600) / (3600 / ns.wp)) | round(0, 'ceil') * div / 3600 -%}
+                {%- set ns.h = ((hrs * 3600) / (3600 / ns.wp)) | round(0, 'ceil') * div / 3600 -%}
             {%- endif -%}
         {%- endfor -%}
     {#- output value -#}
@@ -244,20 +244,21 @@
                                 data[0].items()
                                     | selectattr('1', 'datetime')
                                     | sort(attribute='1')
+                                    | map(attribute='0')
                                     | list
                         -%}
                         {%- if tk_list | count == 0 -%}
+                            {%- set ns = namespace(tk_list=[]) -%}
+                            {%- for k in data[0].keys() -%}
+                                {%- if not data[0][k] | is_number and data[0][k] | as_datetime(none) is not none -%}
+                                    {%- set ns.tk_list = ns.tk_list + [k] -%}
+                                {%- endif -%}
+                            {%- endfor -%}
                             {%- set dates_check = [(now() - day).date() | string, now().date() | string, (now() + day).date() | string] | join('|') -%}
-                            {%- set tk_list =
-                                    data[0].items()
-                                        | selectattr('1', 'string')
-                                        | selectattr('1', 'search', dates_check) 
-                                        | sort(attribute='1')
-                                        | list
-                            -%}
+                            {%- set tk_list = ns.tk_list -%}
                         {%- endif -%}
                         {%- if tk_list | count > 0 -%}
-                            {%- set time_key = tk_list[0][0] -%}
+                            {%- set time_key = tk_list | first -%}
                         {%- endif -%}
                     {%- endif -%}
                 {#- value_key -#}
@@ -375,7 +376,7 @@
                     {%- set end = end + timedelta(seconds=remain * (-1 if mode == 'is_now' else 1)) -%}
                 {#- set hours if in case hours='all' -#}
                     {%- set h_all = (end-start).total_seconds() / 3600 -%}
-                    {%- set h = h_all if hours is defined and hours == 'all' else h | default(hours) | default(1) -%}
+                    {%- set h = h_all if hours is defined and hours == 'all' else h | default(hours | default(1) | float(1)) -%}
             {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
                     {%- if w | count <= h * no_weight_points -%}
@@ -399,7 +400,7 @@
         {%- if debug -%}
             {%- set macro_input = dict(
                                         sensor=sensor,
-                                        hours=h | default(hours) | default(1) | round(3),
+                                        hours=h | default(hours |default(1, true) | float(1)) | round(3),
                                         value_on_error= value_on_error | default(none),
                                         start=start.isoformat() if start is datetime else start,
                                         end=end.isoformat() if end is datetime else end,
@@ -435,11 +436,12 @@
         {%- endif -%}
         {%- set data = data | default([]) -%}
     {#- Return error messages for input -#}
-        {%- set h = h | default(hours) | default(1) -%}
+        {%- set h = h | default(hours |default(1, true) | float(1)) | round(3) -%}
         {%- set start_end = start > end -%}
         {%- set end_start = ((end-start).total_seconds() / 3600) | round(3) if start is datetime and end is datetime else h -%}
         {%- set valid_sensor = sensor | has_value %}
         {%- set valid_pt = (price_tolerance is string and price_tolerance[-1] == '%' and price_tolerance[:-1] | is_number) or price_tolerance | is_number%}
+        {%- set all_keys = iif(data) and time_key in data and value_key in data -%}
         {%- set errors = [
                             "No valid sensor found" if not valid_sensor,
                             "No valid data in {}".format(sensor) if data == [] and valid_sensor,
@@ -456,7 +458,7 @@
                             "Selected program '{}' is not available or has no data".format(program) if program is not none and w is none,
                             "Selected start parameter is after the end parameter" if start_end and data,
                             "{} hours between start and end, where {} hours are required".format(end_start, h | round(3)) if not start_end and end_start < h | round(3) and data,
-                            "Invalid combination of source data points per hour '{}' and number of weight points '{}'".format(dp, dph) if data and not wp_check
+                            "Invalid combination of source data points per hour '{}' and number of weight points '{}'".format(dp, dph) if all_keys and not wp_check
                         ] | select() | list
         -%}
         {%- set use_voe = value_on_error is defined -%}
@@ -726,7 +728,7 @@
                                                         extreme_now=output.extreme_now,
                                                         estimated_costs=output.estimated_costs,
                                                         datapoints_per_hour=dph,
-                                                        hours=h | round(2),
+                                                        hours=h | default(hours | default(1, true) | float(1)) | round(2),
                                                         datapoints=dp
                                                     ) | to_json
                                 -%}
