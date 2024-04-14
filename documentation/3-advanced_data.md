@@ -31,7 +31,7 @@ The kWh usage for the total number of hours, required to calculate the estimated
 ### **plot_sensor** <span style="color:grey">_string (default: sensor.energy_plots)_</span>
 The `entity_id` of the sensor with the energy plots.
 ***
-### **plot_attr** <span style="color:grey">_string (default: plot_data)_</span>
+### **plot_attr** <span style="color:grey">_string (default: energy_plots)_</span>
 The attribute in which the enery plots are stored.
 ***
 ### **program** <span style="color:grey">_string (default: none)_</span>
