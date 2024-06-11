@@ -1,4 +1,4 @@
-{%- set _version = 'v5.5.0'-%}
+{%- set _version = 'v5.5.1'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -712,8 +712,8 @@
                                 if lowest
                                 else values | map(attribute=value_key) | max - pt
                             -%}
-                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first -%}
-                            {%- set output.extreme_now = current_price <= compare_price if lowest else current_price >= compare_price -%}
+                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first | default(none) -%}
+                            {%- set output.extreme_now = current_price is not none and current_price <= compare_price if lowest else current_price >= compare_price -%}
                         {#- output date based on the selected mode -#}
                             {%- if mode == 'all' -%}
                                 {%- set macro_output = dict(
