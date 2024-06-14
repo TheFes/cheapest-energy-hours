@@ -53,6 +53,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |[Nordpool](<https://github.com/custom-components/nordpool>)||all set by default|
 |[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|`attr_all='forecast', value_key='electricity_price'`||
+|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
 
 ## CREATING A FORECAST SENSOR USING THE SERVICE CALL
 
