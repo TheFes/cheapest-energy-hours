@@ -96,7 +96,7 @@ template:
 #### OMIE
 
 This template sensor converts the data in from the `omie` integration to a format which can be used by the macro.
-Replace `sensor.omie_spot_price_es` in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
+Replace `sensor.omie_spot_price_es` (4 times) in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
 
 ```yaml
 template:
@@ -123,8 +123,8 @@ template:
 
 #### SPAIN ELECTRICITY HOURLY PRICING (PVPC)
 
-This template sensor converts the data in from the `omie` integration to a format which can be used by the macro.
-Replace `sensor.omie_spot_price_es` in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
+This template sensor converts the data in from the `Spain electricity hourly pricing (PVPC)` integration to a format which can be used by the macro.
+Replace `sensor.esios_pvpc` (4 times) in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
 
 ```yaml
 template:
