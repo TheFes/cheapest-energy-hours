@@ -45,17 +45,21 @@ The number of minutes each item in the source data represents. Only used in comb
 This section will give the attribute and key settings for energy providers. The name links to the (custom) component used for the data.
 If your provider is missing, you can create a Pull Request to add them, or create an [issue](<https://github.com/TheFes/cheapest-energy-hours/issues/new>), and give the details there so I can add them.
 
-|Data Provider|parameters|comment|
-|---|---|---|
-|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
-|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
-|[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
-|[Nordpool](<https://github.com/custom-components/nordpool>)||all set by default|
-|[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
-|[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|`attr_all='forecast', value_key='electricity_price'`||
-|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
+|Data Provider|core integraton|parameters|comment|
+|---|---|---|---|
+|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|No|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
+|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
+|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
+|[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
+|[Omie](<https://github.com/luuuis/hass_omie>)|No||Using the template sensor [below](#omie)|
+|[Nordpool](<https://github.com/custom-components/nordpool>)|No||all set by default|
+|[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
+|[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
+|[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`attr_all='forecast', value_key='electricity_price'`||
 
-## CREATING A FORECAST SENSOR USING THE SERVICE CALL
+## TEMPLATE SENSOR CONFIGURATION
+
+### CREATING A FORECAST SENSOR USING THE SERVICE CALL
 
 Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
 
@@ -85,6 +89,73 @@ template:
         state: "{{ prices.prices | selectattr('timestamp', '<=', utcnow().strftime('%Y-%m-%d %H:%M:%S+00:00')) | map(attribute='price') | list | last }}"
         attributes:
           prices: "{{ prices.prices }}"
+```
+
+### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS
+
+#### OMIE
+
+This template sensor converts the data in from the `omie` integration to a format which can be used by the macro.
+Replace `sensor.omie_spot_price_es` (4 times) in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
+
+```yaml
+template:
+  - sensor:
+      - unique_id: fa408bd9-458d-4104-94a2-8d76a5065f80
+        name: Omie prices for macro
+        state: >
+          {% set sensor = 'sensor.omie_spot_price_es' %}
+          {{ states(sensor) if sensor | has_value else 'source sensor not available' }}
+        attributes:
+          tomorrow_valid: >
+            {% set sensor = 'sensor.omie_spot_price_es' %}
+            {{ (state_attr(sensor, 'tomorrow_hours') | default({'na': none}, true)).values() | first is not none }}
+          raw_today: >
+            {% set sensor = 'sensor.omie_spot_price_es' %}
+            {% if sensor and sensor | has_value and state_attr(sensor, 'today_hours') is mapping %}
+              {% set ns = namespace(today=[]) %}
+              {% for k, v in state_attr('sensor.omie_spot_price_es', 'today_hours').items() %}
+                {% set ns.today = ns.today + [dict(start=k.isoformat(), price=v)] %}
+              {% endfor %}
+              {{ ns.today }}
+            {% else %}
+```
+
+#### SPAIN ELECTRICITY HOURLY PRICING (PVPC)
+
+This template sensor converts the data in from the `Spain electricity hourly pricing (PVPC)` integration to a format which can be used by the macro.
+Replace `sensor.esios_pvpc` (4 times) in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
+
+```yaml
+template:
+  - sensor:
+      - unique_id: c3d573fe-ce23-49fe-bd6f-07825b9528ed
+        name: PVPC prices for macro
+        state: >
+          {% set sensor = 'sensor.esios_pvpc' %}
+          {{ states(sensor) if sensor | has_value else 'source sensor not available' }}
+        attributes:
+          tomorrow_valid: >
+            {% set sensor = 'sensor.esios_pvpc' %}
+            {{ states[sensor].attributes.keys() | select('search', '^price_next_day_.*h$') | list | count > 0 }}
+          raw_today: >
+            {% set sensor = 'sensor.esios_pvpc' %}
+            {% set today = states[sensor].attributes.keys() | select('search', '^price_.*h$') | reject('search', 'next') | sort | list %}
+            {% set ns = namespace(today=[]) %}
+            {% for attr in today %}
+              {% set h = attr.split('_')[-1] | replace('h', '') | int %}
+              {% set ns.today = ns.today + [dict(start=(today_at()+timedelta(hours=h)).isoformat(), price=state_attr(sensor, attr))] %}
+            {% endfor %}
+            {{ ns.today }}
+          raw_tomorrow: >
+            {% set sensor = 'sensor.esios_pvpc' %}
+            {% set tomorrow = states[sensor].attributes.keys() | select('search', '^price_next_day_.*h$') | sort | list %}
+            {% set ns = namespace(tomorrow=[]) %}
+            {% for attr in tomorrow %}
+              {% set h = attr.split('_')[-1] | replace('h', '') | int %}
+              {% set ns.tomorrow = ns.tomorrow + [dict(start=(today_at()+timedelta(hours=h)).isoformat(), price=state_attr(sensor, attr))] %}
+            {% endfor %}
+            {{ ns.tomorrow }}
 ```
 
 ### NAVIGATION
