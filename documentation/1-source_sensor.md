@@ -47,7 +47,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 |Data Provider|core integraton|parameters|comment|
 |---|---|---|---|
-|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|No|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
+|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|Yes|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
 |[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
 |[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
