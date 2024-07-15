@@ -48,12 +48,13 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |Data Provider|core integraton|parameters|comment|
 |---|---|---|---|
 |[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|Yes|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
-|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
-|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#creating-a-forecast-sensor-using-the-service-call)|
+|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
+|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
 |[Omie](<https://github.com/luuuis/hass_omie>)|No||Using the template sensor [below](#omie)|
 |[Nordpool](<https://github.com/custom-components/nordpool>)|No||all set by default|
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
+|[Tibber](https://www.home-assistant.io/integrations/tibber/)|Yes|`time_key='start_time'`|Using the template sensor [below](#tibber)|
 |[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`attr_all='forecast', value_key='electricity_price'`||
 
@@ -62,6 +63,8 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 ### CREATING A FORECAST SENSOR USING THE SERVICE CALL
 
 Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
+
+#### ENERGYZERO AND EASYENERGY
 
 Notes:
 * The example below is for EnergyZero, for EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
@@ -76,10 +79,10 @@ template:
       - platform: homeassistant
         event: start
     action:
-      - service: energyzero.get_energy_prices
+      - service: energyzero.get_energy_prices # replace with the service call for your integration
         data:
           incl_vat: false
-          config_entry: fe7bdc80dd3bc850138998d869f1f19d
+          config_entry: fe7bdc80dd3bc850138998d869f1f19d # replace with the config entry for your entity
           start: "{{ today_at() - timedelta(days=1) }}"
           end: "{{ today_at() + timedelta(days=2) }}"
         response_variable: prices
@@ -89,6 +92,28 @@ template:
         state: "{{ prices.prices | selectattr('timestamp', '<=', utcnow().strftime('%Y-%m-%d %H:%M:%S+00:00')) | map(attribute='price') | list | last }}"
         attributes:
           prices: "{{ prices.prices }}"
+```
+
+#### TIBBER
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/1"
+      - platform: homeassistant
+        event: start
+    action:
+      - service: tibber.get_prices
+        data:
+          start: "{{ today_at() - timedelta(days=1) }}"
+          end: "{{ today_at() + timedelta(days=2) }}"
+        response_variable: prices
+    sensor:
+      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
+        name: Tibber prices
+        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', utcnow().strftime('%Y-%m-%d %H:%M:%S+00:00')) | map(attribute='price') | list | last }}"
+        attributes:
+          prices: "{{ prices.prices.values() | first }}"
 ```
 
 ### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS
