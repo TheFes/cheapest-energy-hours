@@ -96,7 +96,6 @@ template:
 
 #### TIBBER
 ```yaml
-template:
   - trigger:
       - platform: time_pattern
         hours: "/1"
@@ -105,15 +104,21 @@ template:
     action:
       - service: tibber.get_prices
         data:
-          start: "{{ today_at() - timedelta(days=1) }}"
-          end: "{{ today_at() + timedelta(days=2) }}"
+          start: "{{ (today_at() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
+          end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
         response_variable: prices
     sensor:
       - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
         name: Tibber prices
-        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', utcnow().strftime('%Y-%m-%d %H:%M:%S+00:00')) | map(attribute='price') | list | last }}"
+        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', now()) | map(attribute='price') | list | last }}"
         attributes:
-          prices: "{{ prices.prices.values() | first }}"
+          prices: >
+            {% set ns = namespace(prices=[]) %}
+            {% for i in prices.prices.values() | first %}
+              {% set n = dict(start_time = i.start_time.isoformat(), price = i.price) %}
+              {% set ns.prices = ns.prices + [n] %}
+            {% endfor %}
+            {{ ns.prices }}
 ```
 
 ### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS
