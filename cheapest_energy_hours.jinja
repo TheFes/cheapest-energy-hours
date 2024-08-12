@@ -1,4 +1,4 @@
-{%- set _version = 'v5.5.1'-%}
+{%- set _version = 'v5.5.2'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -636,7 +636,7 @@
                                                     time_min = _format_date(as_datetime(time_min), time_format | default(none)),
                                                     time_max = _format_date(as_datetime(time_max), time_format | default(none)),
                                                     is_now = is_now,
-                                                    all = split_all
+                                                    all = split_all | to_json
                                                 )
                             -%} 
                         {#- output the data -#}
