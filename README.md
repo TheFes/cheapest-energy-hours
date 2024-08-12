@@ -4,7 +4,7 @@
 [![Paypal](https://img.shields.io/badge/PayPal-00457C?&color=00457c&logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/thefes)
 
 
-A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer
+A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer (and much more)
 
 # Why this macro
 
