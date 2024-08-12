@@ -96,6 +96,7 @@ template:
 
 #### TIBBER
 ```yaml
+template:
   - trigger:
       - platform: time_pattern
         hours: "/1"
