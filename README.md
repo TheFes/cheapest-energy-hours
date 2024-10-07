@@ -15,12 +15,14 @@ Funny note 😄 I don't have a dynamic price contract myself. It started as a ch
 
 In case you are able to reduce your energy bill by using this macro, please consider to buy me a cup of coffee ☕
 
+# What does it do?
+Installing this macro will not create any entities in Home Assistant. It will only provide you with a custom template which can be used in Jinja templating to create template sensors or template binary sesnors yourself. In documentation you will find more information on how to do this, and some examples of real life configurations.
+
 # How to install
 You need to have Home Assistant 2023.11 or higher installed to use this custom template.
 
-This custom template is compatible with [HACS](https://hacs.xyz/), which means that you can easily download and manage updates for it. Custom templates are currently only available in HACS when you enable experimental features. Make sure to enable it in the HACS settings, which you can access from Settings > [Devices & Services](https://my.home-assistant.io/create-link/?redirect=integrations) > HACS. When experimental features are enabled you click the button below to add it to your HACS installation,
+This custom template is compatible with [HACS](https://hacs.xyz/), which means that you can easily download and manage updates for it. Custom templates are available for download in HACS 2.0 and up, and on earlier versions in case experimental features are enabled. When you are on HACS 2.0 or higher or experimental features are enabled you can click the button below to add it to your HACS installation:
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TheFes&repository=cheapest-energy-hours&category=template)
-
 
 For a manual install you can copy the contents of `cheapest_energy_hours.jinja` to a jinja file in your `custom_templates` folder.
 Run the `homeassistant.reload_custom_templates` service call to load the file.
