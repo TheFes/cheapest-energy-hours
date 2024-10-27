@@ -293,7 +293,7 @@
                     {%- endfor -%}
                     {%- set data = rebuild.data | sort(attribute='time') -%}
                 {%- endif -%}
-                {%- set dph = int(3600 / (data[1][time_key] - data[0][time_key]).total_seconds()) if data | count > 1 else 1 -%}
+                {%- set dph = int(3600 / (data[1][time_key] - data[0][time_key]).total_seconds() | default(1, true)) if data | count > 1 else 1 -%}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
                     {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
