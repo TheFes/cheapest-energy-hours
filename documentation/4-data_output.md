@@ -10,13 +10,13 @@
 See [seperate section](#output-modes)
 ***
 ### **split** <span style="color:grey">_boolean (default: false)_</span>
-Splits the `hours` input into sections with the chepest prices. So it will not alwasy be a consecutive block of hours, but it will select all the lowest time sections within your selection. `weight` will not be used when `split=true`
+Splits the `hours` input into sections with the cheapest prices. So it will not alwasy be a consecutive block of hours, but it will select all the lowest time sections within your selection. `weight` will not be used when `split=true`
 ***
-### **debug** <span style="color:grey">_bolean (default: false)_</span>
+### **debug** <span style="color:grey">_boolean (default: false)_</span>
 Outputs debug data besides the actual output of the macro
 ***
 ### **precision** <span style="color:grey">_integer (default: 5)_</span>
-The number of decimals used for the price outpu
+The number of decimals used for the price output
 ***
 ### **time_format** <span style="color:grey">_string (default: none)_</span>
 You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org))
@@ -24,11 +24,11 @@ You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for
 ### **price_factor** <span style="color:grey">_float (default: 1)_</span>
 All prices will be multiplied with this value, so if your prices are in cents and you want divided by 100, you can use `0.01`. Or if you want to add 20% VAT, you can use `1.2`
 ***
-### **lowest** <span style="color:grey">_bolean (default: true)_</span>
+### **lowest** <span style="color:grey">_boolean (default: true)_</span>
 Determines if the marco should find the lowest price, set to `false` to find the highest price
 ***
 ### **latest_possible** <span style="color:grey">_boolean (default: false)_</span>
-By default the macro will return the first time block with the cheapest (or highest when `lowest` is set to `false`). When `latest_possible` is set to `true` it will return the last time block with the cheapest prices.
+By default the macro will return the first time block with the cheapest (or highest when `lowest` is set to `false`). When `latest_possible` is set to `true` it will return the last time block with the cheapest prices
 ***
 ### **price_tolerance** <span style="color:grey">_float or percentage (default: 0.0)_</span>
 When set, prices which are within the price_tolerance compared to the lowest price (highest when `lowest` is set to `false`) are also considered as the lowest (or hightest) price. Can be added as a fixed value (eg `0.2`) or as a percentage (eg `"5%"`). In case a percentage is used, it will be used on the lowest price in the time range (or highest price in case `lowest=false`)
