@@ -95,6 +95,34 @@ template:
 ```
 
 #### TIBBER
+Home Assistant 2024.11.0 and above
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/1"
+      - platform: homeassistant
+        event: start
+    action:
+      - service: tibber.get_prices
+        data:
+          start: "{{ (today_at() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
+          end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
+        response_variable: prices
+    sensor:
+      - name: tibber_forecast
+        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', utcnow().isoformat()) | map(attribute='price') | list | last }}"
+        attributes:
+          prices: >
+            {% set ns = namespace(prices=[]) %}
+            {% for i in prices.prices.values() | first %}
+              {% set n = dict(start_time = i.start_time, price = i.price) %}
+              {% set ns.prices = ns.prices + [n] %}
+            {% endfor %}
+            {{ ns.prices }}
+```
+
+Versions of Home Assitant before 2024.11.0 (2024.10 and lower)
 ```yaml
 template:
   - trigger:
