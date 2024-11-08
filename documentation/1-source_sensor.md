@@ -111,7 +111,7 @@ template:
         response_variable: prices
     sensor:
       - name: tibber_forecast
-        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', utcnow().isoformat()) | map(attribute='price') | list | last }}"
+        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', now().isoformat()) | map(attribute='price') | list | last }}"
         attributes:
           prices: >
             {% set ns = namespace(prices=[]) %}
