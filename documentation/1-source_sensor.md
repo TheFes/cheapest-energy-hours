@@ -60,26 +60,31 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 ## TEMPLATE SENSOR CONFIGURATION
 
-### CREATING A FORECAST SENSOR USING THE SERVICE CALL
+### CREATING A FORECAST SENSOR USING THE ACTION
 
 Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
+
+For each energy provider the configuration differs. In all cases the code above needs to be placed in your `configuration.yaml` you can use a code editor (like [Visual Studio Code Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=a0d7b954_vscode) or [File Editor Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=core_configurator)). You can not create these template sensors in the GUI, as trigger based template sensors are not supported as a GUI created template helper.
 
 #### ENERGYZERO AND EASYENERGY
 
 Notes:
 * The example below is for EnergyZero, for EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
-* The `config_entry` value in the service call will differ for each HA instance. The easiest way to get yours is to go to [Developer tools > Services](<https://my.home-assistant.io/create-link/?redirect=developer_services>) and select the service call. The make sure you are in UI Mode, and select the right config entry. Switch to YAML mode to see the config entry.
+* The `config_entry` value in the service call will differ for each HA instance. The easiest way to get yours is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) and select the action. The make sure you are in UI Mode, and select the right config entry. Switch to YAML mode to see the config entry.
 * When `incl_vat` is set to `true`, the EnergyZero API will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below)
 
 ```yaml
 template:
   - trigger:
-      - platform: time_pattern
+      - alias: Triggers every hour
+        platform: time_pattern
         hours: "/1"
-      - platform: homeassistant
+      - alias: Triggers on home assistant startup
+        platform: homeassistant
         event: start
     action:
-      - service: energyzero.get_energy_prices # replace with the service call for your integration
+      - alias: Collects the price information and stores this in a response variable
+        action: energyzero.get_energy_prices # replace with the service call for your integration
         data:
           incl_vat: false
           config_entry: fe7bdc80dd3bc850138998d869f1f19d # replace with the config entry for your entity
@@ -99,12 +104,15 @@ Home Assistant 2024.11.0 and above
 ```yaml
 template:
   - trigger:
-      - platform: time_pattern
+      - alias: Triggers every hour
+        platform: time_pattern
         hours: "/1"
-      - platform: homeassistant
+      - alias: Triggers on home assistant startup
+        platform: homeassistant
         event: start
     action:
-      - service: tibber.get_prices
+      - alias: Collects the price information and stores this in a response variable
+        action: tibber.get_prices
         data:
           start: "{{ (today_at() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
           end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
@@ -126,12 +134,15 @@ Versions of Home Assitant before 2024.11.0 (2024.10 and lower)
 ```yaml
 template:
   - trigger:
-      - platform: time_pattern
+      - alias: Triggers every hour
+        platform: time_pattern
         hours: "/1"
-      - platform: homeassistant
+      - alias: Triggers on home assistant startup
+        platform: homeassistant
         event: start
     action:
-      - service: tibber.get_prices
+      - alias: Collects the price information and stores this in a response variable
+        service: tibber.get_prices
         data:
           start: "{{ (today_at() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
           end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
