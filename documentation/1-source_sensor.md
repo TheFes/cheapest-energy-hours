@@ -118,7 +118,8 @@ template:
           end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
         response_variable: prices
     sensor:
-      - name: tibber_forecast
+      - unique_id: 4283313c-8ccc-460f-8d4f-92b804cdc711
+        name: tibber_forecast
         state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', now().isoformat()) | map(attribute='price') | list | last }}"
         attributes:
           prices: >
