@@ -10,7 +10,7 @@
 See [seperate section](#output-modes)
 ***
 ### **split** <span style="color:grey">_boolean (default: false)_</span>
-Splits the `hours` input into sections with the cheapest prices. So it will not alwasy be a consecutive block of hours, but it will select all the lowest time sections within your selection. `weight` will not be used when `split=true`
+Splits the `hours` input into sections with the cheapest prices. So it will not always be a consecutive block of hours, but it will select all the lowest time sections within your selection. `weight` will not be used when `split=true`
 ***
 ### **debug** <span style="color:grey">_boolean (default: false)_</span>
 Outputs debug data besides the actual output of the macro
