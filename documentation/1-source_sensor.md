@@ -190,6 +190,19 @@ template:
               {% endfor %}
               {{ ns.today }}
             {% else %}
+              []
+            {% endif %}
+          raw_tomorrow: >
+            {% set sensor = 'sensor.omie_spot_price_es' %}
+            {% if this.attributes.get('tomorrow_valid', false) %}
+              {% set ns = namespace(tomorrow=[]) %}
+              {% for k, v in state_attr('sensor.omie_spot_price_es', 'tomorrow_hours').items() %}
+                {% set ns.tomorrow = ns.tomorrow + [dict(start=k.isoformat(), price=v)] %}
+              {% endfor %}
+              {{ ns.tomorrow }}
+            {% else %}
+              []
+            {% endif %}
 ```
 
 #### SPAIN ELECTRICITY HOURLY PRICING (PVPC)
