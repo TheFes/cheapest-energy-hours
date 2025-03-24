@@ -185,7 +185,7 @@ template:
             {% set sensor = 'sensor.omie_spot_price_es' %}
             {% if sensor and sensor | has_value and state_attr(sensor, 'today_hours') is mapping %}
               {% set ns = namespace(today=[]) %}
-              {% for k, v in state_attr('sensor.omie_spot_price_es', 'today_hours').items() %}
+              {% for k, v in state_attr('sensor.omie_spot_price_es', 'today_hours').items() if v | is_number %}
                 {% set ns.today = ns.today + [dict(start=k.isoformat(), price=v)] %}
               {% endfor %}
               {{ ns.today }}
@@ -194,9 +194,9 @@ template:
             {% endif %}
           raw_tomorrow: >
             {% set sensor = 'sensor.omie_spot_price_es' %}
-            {% if this.attributes.get('tomorrow_valid', false) %}
+            {% if false %}
               {% set ns = namespace(tomorrow=[]) %}
-              {% for k, v in state_attr('sensor.omie_spot_price_es', 'tomorrow_hours').items() %}
+              {% for k, v in state_attr('sensor.omie_spot_price_es', 'tomorrow_hours').items() if v | is_number %}
                 {% set ns.tomorrow = ns.tomorrow + [dict(start=k.isoformat(), price=v)] %}
               {% endfor %}
               {{ ns.tomorrow }}
