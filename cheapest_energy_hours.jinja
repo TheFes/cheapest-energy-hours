@@ -769,7 +769,7 @@
                                             values_count=values|count,
                                             datapoints_source=datapoints_source,
                                             datapoints_used=datapoints_used,
-                                            original_prices=(output | default({})).get('prices_list', []),
+                                            original_prices=output.prices_list,
                                             price_count=price_count | default(0),
                                             kwh_list=kwh_list | default([])
                                         )
