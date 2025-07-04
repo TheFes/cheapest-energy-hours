@@ -42,4 +42,4 @@ To only include prices as of now, set this to `true`. If combined with `start`, 
 ```
 
 ### NAVIGATION
-[PREVIOUS: SOURCE SENSOR](./1-source_sensor.md) | [CONTENTS](0-how-to.md) | [NEXT: ADVANCED DATA](./3-advanced_data.md)
+[PREVIOUS: SOURCE DATA](./1-source_data.md) | [CONTENTS](0-how-to.md) | [NEXT: ADVANCED DATA](./3-advanced_data.md)
