@@ -1,4 +1,4 @@
-# 1. SOURCE SENSOR
+# 1. SOURCE DATA
 
 These parameters are used to determine where the source data can be found. If you use the custom [Nordpool integration](https://github.com/custom-components/nordpool) (can be downloaded using HACS), or an integration which uses the same attributes, you don't need to provide any of the parameters, but it is advised to provide the `sensor` as it will be more resource friendly if the macro doesn't need to search for it.
 
@@ -10,8 +10,10 @@ These parameters are used to determine where the source data can be found. If yo
 ## PARAMETERS
 
 ### **sensor** <span style="color:grey">_string_</span>
-The entity_id of the sensor containing the source data
+The entity_id of the sensor containing the source data, in case this is not provided, the macro will search for a sensor matching attributes for the data for today and tomorrow. It is advised to provide a sensor though, as it will speed up the macro.
 ***
+### **price_data** <span style="color:grey">_list_</span>
+A list with the price data of the period you want to use. You can use this in case your energy price integration doesn't provide the price data in sensor attributes, but uses an action with an action response to provide the prices. This way there is no need to create a template sensor with the price data in attributes, but you can use the result from the action response directy. See the section [below](#using-the-action-response-as-input-for-the-macro) for an example.
 ### **attr_today** <span style="color:grey">_string (default: raw_today)_</span>
 The attribute that has the datetimes and prices for today used by the macro
 ***
@@ -60,6 +62,34 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`attr_all='forecast', value_key='electricity_price'`||
 
+## USING THE ACTION RESPONSE AS INPUT FOR THE MACRO
+
+Using the action response directly allows you to use integrations which do not provide the prices in an attribute without the need to create a template sensor (as described in the section below this one).
+Here is an example using the EnergyZero integration, which will result in a sensor which has the datetime of the start of a block of 3.5 hours, starting now and ending tomorrow at midnight. It is updated every 5 minutes.
+
+```yaml
+template:
+  - triggers:
+      - alias: Triggers every 5 minutes
+        trigger: time_pattern
+        minutes: "/5"
+    actions:
+      - alias: Collects the price information and stores this in a response variable
+        action: energyzero.get_energy_prices
+        data:
+          config_entry: fe7bdc80dd3bc850138998d869f1f19d # adjust to the config entry for your system
+          incl_vat: false # set to false as it won't apply rounding to the prices
+          start: "{{ now() }}"
+          end: "{{ today_at('00:00') + timedelta(days=2) }}"      
+    sensor:
+      - unique_id: d8a349b4-2e83-417a-90dd-e38d0a9f3935
+        name: Cheapest 3.5 hours from now
+        state: >
+          {% from 'cheapest_energy_hours.jinja' import cheapest_energy_hours %}
+          {{ cheapest_energy_hours(price_data=prices['prices'], time_key='timestamp', value_key='price', hours=3.5, look_ahead=true, include_tomorrow=true) }}
+        device_class: timestamp
+```
+
 ## TEMPLATE SENSOR CONFIGURATION
 
 ### CREATING A FORECAST SENSOR USING THE ACTION
@@ -77,14 +107,14 @@ Notes:
 
 ```yaml
 template:
-  - trigger:
+  - triggers:
       - alias: Triggers every hour
-        platform: time_pattern
+        trigger: time_pattern
         hours: "/1"
       - alias: Triggers on home assistant startup
-        platform: homeassistant
+        trigger: homeassistant
         event: start
-    action:
+    actions:
       - alias: Collects the price information and stores this in a response variable
         action: energyzero.get_energy_prices # replace with the service call for your integration
         data:
@@ -102,17 +132,17 @@ template:
 ```
 
 #### TIBBER
-Home Assistant 2024.11.0 and above
+Home Assistant 2024.11.0 and above is required for this sensor, as the Tibber price output changed in that version
 ```yaml
 template:
-  - trigger:
+  - triggers:
       - alias: Triggers every hour
-        platform: time_pattern
+        trigger: time_pattern
         hours: "/1"
       - alias: Triggers on home assistant startup
-        platform: homeassistant
+        trigger: homeassistant
         event: start
-    action:
+    actions:
       - alias: Collects the price information and stores this in a response variable
         action: tibber.get_prices
         data:
@@ -128,37 +158,6 @@ template:
             {% set ns = namespace(prices=[]) %}
             {% for i in prices.prices.values() | first %}
               {% set n = dict(start_time = i.start_time, price = i.price) %}
-              {% set ns.prices = ns.prices + [n] %}
-            {% endfor %}
-            {{ ns.prices }}
-```
-
-Versions of Home Assitant before 2024.11.0 (2024.10 and lower)
-```yaml
-template:
-  - trigger:
-      - alias: Triggers every hour
-        platform: time_pattern
-        hours: "/1"
-      - alias: Triggers on home assistant startup
-        platform: homeassistant
-        event: start
-    action:
-      - alias: Collects the price information and stores this in a response variable
-        service: tibber.get_prices
-        data:
-          start: "{{ (today_at() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
-          end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
-        response_variable: prices
-    sensor:
-      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
-        name: Tibber prices
-        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', now()) | map(attribute='price') | list | last }}"
-        attributes:
-          prices: >
-            {% set ns = namespace(prices=[]) %}
-            {% for i in prices.prices.values() | first %}
-              {% set n = dict(start_time = i.start_time.isoformat(), price = i.price) %}
               {% set ns.prices = ns.prices + [n] %}
             {% endfor %}
             {{ ns.prices }}
