@@ -99,7 +99,6 @@
 {#- main macro -#}
 {%- macro cheapest_energy_hours(
                                     sensor,
-                                    price_data,
                                     value_on_error,
                                     hours,
                                     start='00:00',
@@ -129,6 +128,7 @@
                                     plot_attr='energy_plots',
                                     split=false,
                                     debug=false,
+                                    price_data=none,
                                     datapoints_per_hour='depreciated',
                                     look_ahead_minutes='depreciated'
                                 ) -%}
@@ -137,7 +137,7 @@
         {%- if debug -%}
             {%- set defaults = dict(
                                         sensor=none,
-                                        price_data=[],
+                                        price_data=none,
                                         value_on_error=none,
                                         hours=none,
                                         start='00:00',
@@ -204,11 +204,11 @@
             {%- set non_default = dict(user_input.items() | reject('in', defaults.items())) -%}
         {%- endif -%}
     {#- find sensor if needed -#}
-        {%- if price_data is not defined and (sensor is not defined or not sensor | has_value) -%}
+        {%- if price_data is none and (sensor is not defined or not sensor | has_value) -%}
             {%- set sensor = _find_sensor(attr_today, attr_tomorrow) -%}
         {%- endif -%}
         {%- set day = timedelta(days=1) -%}
-        {%- if price_data is undefined and sensor | has_value -%}
+        {%- if price_data is none and sensor | has_value -%}
         {#- Get data out of the selected entity, find right attributes if needed -#}
             {%- set today = state_attr(sensor, attr_today) | default([], true)-%}
             {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
@@ -284,7 +284,7 @@
                 {%- endfor -%}
                 {%- set data = ns.data -%}
             {%- endif -%}
-        {%- elif price_data is defined
+        {%- elif price_data is not none
             and price_data is list
             and 
                 (
@@ -294,7 +294,7 @@
         -%}
             {%- set data = price_data -%}
             {%- set valid_price_data = true -%}
-        {%- elif price_data is defined -%}
+        {%- elif price_data is not none -%}
             {%- set data = [] -%}
             {%- set valid_price_data = false -%}
         {%- endif -%}
@@ -464,9 +464,9 @@
         {%- set valid_pt = (price_tolerance is string and price_tolerance[-1] == '%' and price_tolerance[:-1] | is_number) or price_tolerance | is_number%}
         {%- set all_keys = iif(data) and time_key in data and value_key in data -%}
         {%- set errors = [
-                            "No valid sensor found" if price_data is undefined and not valid_sensor,
-                            "No valid data in {}".format(sensor) if price_data is undefined and data == [] and valid_sensor,
-                            "No valid data in provided price_data" if price_data is defined and not valid_price_data,
+                            "No valid sensor found" if price_data is none and not valid_sensor,
+                            "No valid data in {}".format(sensor) if price_data is none and data == [] and valid_sensor,
+                            "No valid data in provided price_data" if price_data is not none and not valid_price_data,
                             "Time key '{}' not found in data".format(time_key) if data and time_key not in data[0],
                             "Value key '{}' not found in data".format(value_key) if data and value_key not in data[0],
                             "Invalid mode '{}' selected".format(mode) if mode not in modes,
