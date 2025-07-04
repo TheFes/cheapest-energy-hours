@@ -302,7 +302,7 @@
         {%- if data is defined -%}
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
             {#- Rebuild data from sensor to generic format -#}
-                {%- if data[0][time_key] is not datetime -%}
+                {%- if data[0][time_key] is not datetime or or price_factor != 1 -%}
                     {%- set rebuild = namespace(data=[]) -%}
                     {%- for item in data -%}
                         {%- set time = item[time_key] -%}
@@ -556,7 +556,7 @@
                     {%- endif -%}
                     {%- set split = mode == 'split' or split -%}
                     {%- set pr = precision | default(5) -%}
-                    {%- if split -%}
+                    {%- if split -%} {#- start of calculations for split -#}
                         {#- sort values and take out hours needed -#}
                             {%- set prices = (values | sort(attribute=value_key, reverse=not lowest) | map(attribute=value_key) | list)[:dp] -%}
                             {%- set values = values | selectattr(value_key, 'in', prices) | sort(attribute=time_key) | list -%}
@@ -661,8 +661,8 @@
                             -%} 
                         {#- output the data -#}
                             {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
-                    {%- else -%}
-                        {#- create output for all modes -#}
+                    {%- else -%} {#- end for calucations for split -#}
+                        {#- create output for all modes if split is set to false -#}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, compare=none, time_min=none, time_max=none, prices_list=[], list=[], is_now=false, extreme_now=none, estimated_costs="unknown") -%}
                             {%- set last_values = (h * no_weight_points) | round(0) | int -%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
@@ -674,14 +674,14 @@
                                 -%}
                                 {#- calculate (weighted) average price -#}
                                     {%- if w is not none -%}
-                                        {%- set weighted = namespace(sum=0, original=0) -%}
-                                        {%- for price in prices_list -%}
-                                            {%- set weighted.sum = weighted.sum + price * w[loop.index0] -%}
+                                        {%- set weighted = namespace(average=0, original=0) -%}
+                                        {%- for weight in w -%}
+                                            {%- set weighted.average = weighted.average + (weight / w | sum) * prices_list[loop.index0] -%}
                                         {%- endfor -%}
-                                        {%- set a = weighted.sum / w | count -%}
+                                        {%- set a = weighted.average -%}
                                         {%- if pt != 0 -%}
-                                            {%- for price in original_price_list -%}
-                                                {%- set weighted.original = weighted.original + price * w[loop.index0] -%}
+                                            {%- for weight in w -%}
+                                                {%- set weighted.original = weighted.original + (weight / w | sum) + orignal_prices_list[loop.index0] -%}
                                             {%- endfor -%}
                                             {%- set original_w_avg = weighted.original / w | count -%}
                                         {%- endif -%}
