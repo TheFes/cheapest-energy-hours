@@ -302,7 +302,7 @@
         {%- if data is defined -%}
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
             {#- Rebuild data from sensor to generic format -#}
-                {%- if data[0][time_key] is not datetime or or price_factor != 1 -%}
+                {%- if data[0][time_key] is not datetime or price_factor != 1 -%}
                     {%- set rebuild = namespace(data=[]) -%}
                     {%- for item in data -%}
                         {%- set time = item[time_key] -%}
@@ -650,7 +650,6 @@
                                                     min = min | round(pr),
                                                     max = max | round(pr),
                                                     average = list | average | round(pr),
-                                                    weighted_average = list | average | round(pr), 
                                                     start = _format_date(as_datetime(split_all[0].start), time_format),
                                                     end = _format_date(as_datetime(split_all[-2].end), time_format),
                                                     time_min = _format_date(as_datetime(time_min), time_format | default(none)),
