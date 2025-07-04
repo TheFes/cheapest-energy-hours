@@ -735,7 +735,7 @@
                             {%- set output.extreme_now = current_price is not none and current_price <= compare_price if lowest else current_price >= compare_price -%}
                         {#- output date based on the selected mode -#}
                             {%- if mode == 'all' -%}
-                                {%- set output = dict(
+                                {%- set macro_output = dict(
                                                         start=output.start,
                                                         end=output.end,
                                                         min=output.min,
@@ -769,7 +769,7 @@
                                             values_count=values|count,
                                             datapoints_source=datapoints_source,
                                             datapoints_used=datapoints_used,
-                                            original_prices=(output | default({})).get('prices_list', []),
+                                            original_prices=output.prices_list,
                                             price_count=price_count | default(0),
                                             kwh_list=kwh_list | default([])
                                         )
