@@ -3,9 +3,9 @@
 These parameters are used to determine where the source data can be found. If you use the custom [Nordpool integration](https://github.com/custom-components/nordpool) (can be downloaded using HACS), or an integration which uses the same attributes, you don't need to provide any of the parameters, but it is advised to provide the `sensor` as it will be more resource friendly if the macro doesn't need to search for it.
 
 ## 🚨 IMPORTANT NOTES 🚨
-* It is advised to provice all parameters if they don't match the defaults. Although the macro will search for the attributes and keys, it is more resource friendly if they are already provided.
-* If your sensor uses other attributes for the data of today and tomorrow you need to provide the correct `sensor` parameter or the correct `attr_today` and `attr_tomorrow` parameters. It can't find the right sensor if the atrributes differ from the defaults, and it can't find the right attributes if the right sensor is not provided.
-* In case `datetime_in_data` is set to `false` the attribute finder will not work, you need to make sure to set `attr_today`, `attr_tomorrow` and/or `attr_all` yourself.
+* It is advised to provide all parameters if they don't match the defaults. Although the macro will search for the attributes and keys, it is more resource friendly if they are already provided.
+* If your sensor uses other attributes for the data of today and tomorrow, you need to provide the correct `sensor` parameter or the correct `attr_today` and `attr_tomorrow` parameters. It can't find the right sensor if the atrributes differ from the defaults, and it can't find the right attributes if the right sensor is not provided.
+* In case `datetime_in_data` is set to `false` the attribute finder will not work, so you need to make sure to set `attr_today`, `attr_tomorrow` and/or `attr_all` yourself.
 
 ## PARAMETERS
 
@@ -13,13 +13,13 @@ These parameters are used to determine where the source data can be found. If yo
 The entity_id of the sensor containing the source data
 ***
 ### **attr_today** <span style="color:grey">_string (default: raw_today)_</span>
-The attribute which has the datetimes and prices for today used by the macro
+The attribute that has the datetimes and prices for today used by the macro
 ***
 ### **attr_tomorrow** <span style="color:grey">_string (default: raw_tomorrow)_</span>
-The attribute which has the datetimes and prices for tomorrow used by the macro
+The attribute that has the datetimes and prices for tomorrow used by the macro
 ***
 ### **attr_all** <span style="color:grey">_string (default: prices)_</span>
-The attribute which contains both the data of today and tomorrow if provided by the sensor
+The attribute that contains both the data of today and tomorrow if provided by the sensor
 ***
 ### **time_key** <span style="color:grey">_string (default: start)_</span>
 The key used in the attributes of your integration for the start times of the hours
@@ -42,7 +42,7 @@ The number of minutes each item in the source data represents. Only used in comb
 
 ## DATA PROVIDER SETTINGS
 
-This section will give the attribute and key settings for energy providers. The name links to the (custom) component used for the data.
+This section provides the attributes and key settings for energy providers. The name links to the (custom) component used for the data.
 If your provider is missing, you can create a Pull Request to add them, or create an [issue](<https://github.com/TheFes/cheapest-energy-hours/issues/new>), and give the details there so I can add them.
 
 |Data Provider|core integraton|parameters|comment|
@@ -51,6 +51,8 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
 |[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
+|[Frank Energie](<https://github.com/bajansen/home-assistant-frank_energie>)|No|`attr_all='prices', time_key='from', value_key='price'`||
+|[Octopus Energy](<https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy>)|No|`attr_all='rates', value_key='value_incl_vat'`||
 |[Omie](<https://github.com/luuuis/hass_omie>)|No||Using the template sensor [below](#omie)|
 |[Nordpool](<https://github.com/custom-components/nordpool>)|No||all set by default|
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
@@ -62,16 +64,16 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 
 ### CREATING A FORECAST SENSOR USING THE ACTION
 
-Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provice the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to setup a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and on Home Assistant startup.
+Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provide the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to set up a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and upon Home Assistant startup.
 
-For each energy provider the configuration differs. In all cases the code above needs to be placed in your `configuration.yaml` you can use a code editor (like [Visual Studio Code Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=a0d7b954_vscode) or [File Editor Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=core_configurator)). You can not create these template sensors in the GUI, as trigger based template sensors are not supported as a GUI created template helper.
+For each energy provider, the configuration differs. In all cases the code above needs to be placed in your `configuration.yaml`. You can use a code editor (like [Visual Studio Code Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=a0d7b954_vscode) or [File Editor Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=core_configurator)). You cannot create these template sensors in the GUI, as trigger based template sensors are not supported as a GUI created template helper.
 
 #### ENERGYZERO AND EASYENERGY
 
 Notes:
-* The example below is for EnergyZero, for EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
-* The `config_entry` value in the service call will differ for each HA instance. The easiest way to get yours is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) and select the action. The make sure you are in UI Mode, and select the right config entry. Switch to YAML mode to see the config entry.
-* When `incl_vat` is set to `true`, the EnergyZero API will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below)
+* The example below is for EnergyZero. For EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
+* The `config_entry` value in the service call will differ for each HA instance. The easiest way to get yours is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) and select the action. Make sure you are in UI Mode, and select the right config entry. Switch to YAML mode to see the config entry.
+* When `incl_vat` is set to `true`, the EnergyZero API will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below).
 
 ```yaml
 template:
@@ -166,7 +168,7 @@ template:
 
 #### OMIE
 
-This template sensor converts the data in from the `omie` integration to a format which can be used by the macro.
+This template sensor converts the data from the `omie` integration to a format which can be used by the macro.
 Replace `sensor.omie_spot_price_es` (4 times) in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
 
 ```yaml
@@ -185,16 +187,29 @@ template:
             {% set sensor = 'sensor.omie_spot_price_es' %}
             {% if sensor and sensor | has_value and state_attr(sensor, 'today_hours') is mapping %}
               {% set ns = namespace(today=[]) %}
-              {% for k, v in state_attr('sensor.omie_spot_price_es', 'today_hours').items() %}
+              {% for k, v in state_attr('sensor.omie_spot_price_es', 'today_hours').items() if v | is_number %}
                 {% set ns.today = ns.today + [dict(start=k.isoformat(), price=v)] %}
               {% endfor %}
               {{ ns.today }}
             {% else %}
+              []
+            {% endif %}
+          raw_tomorrow: >
+            {% set sensor = 'sensor.omie_spot_price_es' %}
+            {% if false %}
+              {% set ns = namespace(tomorrow=[]) %}
+              {% for k, v in state_attr('sensor.omie_spot_price_es', 'tomorrow_hours').items() if v | is_number %}
+                {% set ns.tomorrow = ns.tomorrow + [dict(start=k.isoformat(), price=v)] %}
+              {% endfor %}
+              {{ ns.tomorrow }}
+            {% else %}
+              []
+            {% endif %}
 ```
 
 #### SPAIN ELECTRICITY HOURLY PRICING (PVPC)
 
-This template sensor converts the data in from the `Spain electricity hourly pricing (PVPC)` integration to a format which can be used by the macro.
+This template sensor converts the data from the `Spain electricity hourly pricing (PVPC)` integration to a format which can be used by the macro.
 Replace `sensor.esios_pvpc` (4 times) in the yaml code below with the entity_id used by you, and place this code in your configuration.yaml
 
 ```yaml
