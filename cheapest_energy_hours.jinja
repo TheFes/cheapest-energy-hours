@@ -1,4 +1,4 @@
-{%- set _version = 'v5.5.6'-%}
+{%- set _version = 'v6.0.0b1'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -128,6 +128,7 @@
                                     plot_attr='energy_plots',
                                     split=false,
                                     debug=false,
+                                    price_data=none,
                                     datapoints_per_hour='depreciated',
                                     look_ahead_minutes='depreciated'
                                 ) -%}
@@ -136,6 +137,7 @@
         {%- if debug -%}
             {%- set defaults = dict(
                                         sensor=none,
+                                        price_data=none,
                                         value_on_error=none,
                                         hours=none,
                                         start='00:00',
@@ -168,6 +170,7 @@
             -%}
             {%- set user_input = dict(
                                         sensor=sensor | default(none),
+                                        price_data=price_data | default(none),
                                         value_on_error= value_on_error | default(none),
                                         hours=hours | default(none) | round(3, default=none),
                                         start=start.isoformat() if start is datetime else start,
@@ -201,15 +204,15 @@
             {%- set non_default = dict(user_input.items() | reject('in', defaults.items())) -%}
         {%- endif -%}
     {#- find sensor if needed -#}
-        {%- if sensor is not defined or not sensor | has_value -%}
+        {%- if price_data is none and (sensor is not defined or not sensor | has_value) -%}
             {%- set sensor = _find_sensor(attr_today, attr_tomorrow) -%}
         {%- endif -%}
-        {%- if sensor | has_value -%}
+        {%- set day = timedelta(days=1) -%}
+        {%- if price_data is none and sensor | has_value -%}
         {#- Get data out of the selected entity, find right attributes if needed -#}
             {%- set today = state_attr(sensor, attr_today) | default([], true)-%}
             {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
             {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
-            {%- set day = timedelta(days=1) -%}
         {# check data if data_type is set to datetimes and values #}
             {%- if datetime_in_data | bool(true) -%}
             {# Check if there is an all attribute in the sensor #}
@@ -281,7 +284,22 @@
                 {%- endfor -%}
                 {%- set data = ns.data -%}
             {%- endif -%}
+        {%- elif price_data is not none
+            and price_data is list
+            and 
+                (
+                    price_data | count == 0
+                    or price_data[0] is mapping
+                )
+        -%}
+            {%- set data = price_data -%}
+            {%- set valid_price_data = true -%}
+        {%- elif price_data is not none -%}
+            {%- set data = [] -%}
+            {%- set valid_price_data = false -%}
+        {%- endif -%}
         {#- check if sensor has valid data -#}
+        {%- if data is defined -%}
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
             {#- Rebuild data from sensor to generic format -#}
                 {%- if data[0][time_key] is not datetime or price_factor != 1 -%}
@@ -308,7 +326,7 @@
             {#- set number of hours based on weight points in case hours setting is not provided -#}
                 {%- if mode == 'extreme_now' -%}
                     {%- set h = 1 / dph -%}
-                {%- elif w and hours is not defined -%}
+                {%- elif w and hours is undefined -%}
                     {%- set h = (w | count / no_weight_points | default(1)) -%}
                 {%- else -%}
                     {%- set h = hours | default(1) | float(1) -%}
@@ -401,7 +419,8 @@
     {#- set more data for debugging -#}
         {%- if debug -%}
             {%- set macro_input = dict(
-                                        sensor=sensor,
+                                        sensor=sensor | default(none),
+                                        price_data=price_data | default([]),
                                         hours=h | default(hours |default(1, true) | float(1)) | round(3),
                                         value_on_error= value_on_error | default(none),
                                         start=start.isoformat() if start is datetime else start,
@@ -441,12 +460,13 @@
         {%- set h = h | default(hours |default(1, true) | float(1)) | round(3) -%}
         {%- set start_end = start > end -%}
         {%- set end_start = ((end-start).total_seconds() / 3600) | round(3) if start is datetime and end is datetime else h -%}
-        {%- set valid_sensor = sensor | has_value %}
+        {%- set valid_sensor = sensor | default('unknown') | has_value -%}
         {%- set valid_pt = (price_tolerance is string and price_tolerance[-1] == '%' and price_tolerance[:-1] | is_number) or price_tolerance | is_number%}
         {%- set all_keys = iif(data) and time_key in data and value_key in data -%}
         {%- set errors = [
-                            "No valid sensor found" if not valid_sensor,
-                            "No valid data in {}".format(sensor) if data == [] and valid_sensor,
+                            "No valid sensor found" if price_data is none and not valid_sensor,
+                            "No valid data in {}".format(sensor) if price_data is none and data == [] and valid_sensor,
+                            "No valid data in provided price_data" if price_data is not none and not valid_price_data,
                             "Time key '{}' not found in data".format(time_key) if data and time_key not in data[0],
                             "Value key '{}' not found in data".format(value_key) if data and value_key not in data[0],
                             "Invalid mode '{}' selected".format(mode) if mode not in modes,
@@ -742,15 +762,23 @@
                 {%- else -%}
                     {%- set v = values | count -%}
                     {%- set h_v = v / no_weight_points | round(3) -%}
-                    {%- set error_msg = '1 error: {} datapoints ({} hours) in selection, where {} ({} hours) are expected'.format(v, h_v, dp, h | round(3)) -%}
-                    {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
+                    {%- set error_msg = '1 error: {} datapoints ({} hours) in selection, where {} ({} hours) are expected'.format(v | int, h_v | round(3), dp | int, h | round(3)) -%}
+                    {%- set macro_output = (value_on_error if use_voe and not debug else error_msg) | to_json -%}
                 {%- endif -%}
                 {%- if debug -%}
-                    {%- set dict_add = dict(values_count=values|count, datapoints_source=datapoints_source, datapoints_used=datapoints_used, original_prices=output.prices_list, price_count=price_count, kwh_list=kwh_list) -%}
+                    {%- set dict_add = dict(
+                                            values_count=values|count,
+                                            datapoints_source=datapoints_source,
+                                            datapoints_used=datapoints_used,
+                                            original_prices=output.prices_list,
+                                            price_count=price_count | default(0),
+                                            kwh_list=kwh_list | default([])
+                                        )
+                    -%}
                     {{- dict(
                                 version=_version,
-                                output=macro_output,
-                                error=true if error_msg is defined else false,
+                                output=macro_output | from_json,
+                                error=error_msg is defined,
                                 non_default_user_input=non_default,
                                 set_by_macro=set_by_macro,
                                 defaults_used=defaults_used,
