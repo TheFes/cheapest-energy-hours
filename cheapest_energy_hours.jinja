@@ -1,4 +1,4 @@
-{%- set _version = 'v6.0.0'-%}
+{%- set _version = 'v6.0.0b1'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -326,7 +326,7 @@
             {#- set number of hours based on weight points in case hours setting is not provided -#}
                 {%- if mode == 'extreme_now' -%}
                     {%- set h = 1 / dph -%}
-                {%- elif w and hours is undefined -%}f
+                {%- elif w and hours is undefined -%}
                     {%- set h = (w | count / no_weight_points | default(1)) -%}
                 {%- else -%}
                     {%- set h = hours | default(1) | float(1) -%}
@@ -680,7 +680,7 @@
                             {%- set last_values = (h * no_weight_points) | round(0) | int -%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
                                 {%- set prices_list = values[i:i + last_values] | map(attribute=value_key) | list -%}
-                                {%- set original_price_list = 
+                                {%- set original_price_list =
                                     values[i:i + last_values] | map(attribute='original_value') | list
                                     if pt != 0
                                     else prices_list
@@ -689,18 +689,19 @@
                                     {%- if w is not none -%}
                                         {%- set weighted = namespace(average=0, original=0) -%}
                                         {%- for weight in w -%}
-                                            {%- set weighted.average = weighted.average + (weight / w | sum) * prices_list[loop.index0] -%}
+                                            {%- set weighted.average = weighted.average + weight * prices_list[loop.index0] -%}
                                         {%- endfor -%}
-                                        {%- set a = weighted.average -%}
+                                        {%- set a = weighted.average / w | sum -%}
                                         {%- if pt != 0 -%}
                                             {%- for weight in w -%}
-                                                {%- set weighted.original = weighted.original + (weight / w | sum) + orignal_prices_list[loop.index0] -%}
+                                                {%- set weighted.original = weighted.original + weight * original_price_list[loop.index0] -%}
                                             {%- endfor -%}
-                                            {%- set original_w_avg = weighted.original / w | count -%}
+                                            {%- set original_w_avg = weighted.original / w | sum -%}
                                         {%- endif -%}
                                     {%- else -%}
                                         {%- set a = prices_list | sum / dp -%}
                                     {%- endif -%}
+                                {#- prepare outpt -#}
                                 {%- set b = output.compare -%}
                                 {%- set min, max = (prices_list | min, prices_list | max) if pt == 0 else (original_price_list | min, original_price_list | max) -%}
                                 {%- set avg = prices_list | average | round(pr) if pt == 0 else original_price_list | average | round(pr) -%}
