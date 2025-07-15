@@ -358,9 +358,20 @@
                         {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
                         {%- set end = end + day if end == today_at() else end -%}
                         {%- set end = end + day if include_tomorrow else end -%}
-						{#- If start is beyond end set end + 1day: auto increment without extra autommation -#}
-						{%- set end = end + day if end < start else end -%}
                     {%- endif -%}
+                {#- check for midnight crossing -#}
+                    {%- if n <= start -%}
+						{%- if n < end -%}
+							{#- EXAMPLE NOW() = 04:00 , START = 20:00, END = 8:00 -#}
+							{%- set start = today_at(0:00) if end < start else start -%}
+						{%- else -%}
+							{#- EXAMPLE NOW() = 12:00 , START = 20:00, END = 8:00 -#}
+							{%- set end = end + day if end < start else end -%}
+						{%- endif -%}
+					{%- else -%}
+						{#- EXAMPLE NOW() = 21:00 , START = 20:00, END = 8:00 -#}
+						{%- set end = end + day if end < start else end -%}
+					{%- endif -%}
                     {%- set seconds = end.minute * 60 + end.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, mode='remain') | int -%}
                     {%- set end_dph = _div_calc(seconds, h, dph) | int -%}
