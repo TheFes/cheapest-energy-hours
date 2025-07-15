@@ -4,8 +4,8 @@
 
 * `start` and `end`
   * When using a `start` and `end` which spans midnight, the output will change after midnight, as the source data will change as well (the data for the previous day will no longer be available). To avoid issues with changing data, it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and trigger it e.g. an hour before your `start` setting.
-  * When using a `start` and `end` which spans midnight, selected period is calculated based on current time "now()".		
-    Example Start="22:00", end="06:00")
+  * When using a `start` and `end` which spans midnight, selected period is calculated based on current time "now()".	
+    + Example Start="22:00", end="06:00")
     - now() between "06:00" and v23:59" : Start set to today at '22:00', end set to tomorrow at '06"00'
 	  Note: At "14:00" Cheapest time search might change. as before 14:00 prices for tomorrow are missing and cheapest time search stops at 23:59.
 	- now() between "00:00" and "05:59" : Start set to today at '00:00', end set to today at '06"00'
