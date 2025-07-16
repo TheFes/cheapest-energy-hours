@@ -360,17 +360,14 @@
                         {%- set end = end + day if include_tomorrow else end -%}
                     {%- endif -%}
 				{#- check for start/stop midnight crossing -#}
-                    {%- if start > n -%}
+                    {%- if start > end -%}
 						{%- if end > n -%}
 							{#- EXAMPLE NOW() = 04:00 , START = 20:00, END = 8:00 -#}
 							{%- set start = today_at(00) if end < start else start -%}
 						{%- else -%}
 							{#- EXAMPLE NOW() = 12:00 , START = 20:00, END = 8:00 -#}
-							{%- set end = end + day if end < start else end -%}
+							{%- set end = end + day -%}
 						{%- endif -%}
-					{%- else -%}
-						{#- EXAMPLE NOW() = 21:00 , START = 20:00, END = 8:00 -#}
-						{%- set end = end + day if end < start else end -%}
 					{%- endif -%}
 				{#- End check for start/stop midnight crossing -#}
                     {%- set seconds = end.minute * 60 + end.second -%}
