@@ -359,6 +359,13 @@
                         {%- set end = end + day if end == today_at() else end -%}
                         {%- set end = end + day if include_tomorrow else end -%}
                     {%- endif -%}
+                    {%- if start > end -%}              {#- START = 20:00, END = 8:00 -#}
+                      {%- if end > n -%}				        {#- NOW() = 04:00, END = 8:00 -#}
+                        {%- set start = start - day -%} {#- Set start yesterday -#}
+                      {%- else -%}				              {#- NOW() = 12:00, END = 8:00 -#}
+                        {%- set end = end + day -%}     {#- Set end tomorrow -#}
+                      {%- endif -%}
+                    {%- endif -%}                       {#- End midnight crossing check -#}
                     {%- set seconds = end.minute * 60 + end.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, mode='remain') | int -%}
                     {%- set end_dph = _div_calc(seconds, h, dph) | int -%}
