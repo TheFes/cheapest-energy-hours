@@ -8,7 +8,7 @@ The information below explains how to use the macro in several sections, each se
 
 
 ## CONTENTS
-1. [Source sensor](./1-source_sensor.md)
+1. [Source data](./1-source_data.md)
 2. [Basic data selection](2-basic_data.md)
 3. [Advanced data selection (using weight factors)](./3-advanced_data.md)
 4. [Data output](4-data_output.md)
@@ -16,4 +16,4 @@ The information below explains how to use the macro in several sections, each se
 6. [Examples](./6-examples.md)
 
 ### NAVIGATION
-[NEXT: SOURCE SENSOR](./1-source_sensor.md)
+[NEXT: SOURCE SENSOR](./1-source_data.md)
