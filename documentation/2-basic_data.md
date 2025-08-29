@@ -10,6 +10,7 @@
       At `14:00` the output **_might change_** as the data for tomorrow will be added.
     - now() between `00:00` and `05:59` : `start` adjusted to today at `00:00` \
       At `00:00` the output **_might change_** as the data for the previous day will no longer be available.
+  * In case a time string like `"16:00"` is provided for the `end` time, this will be the time today if `inlcude_tomorrow` is not provided or set to `false`. When set to `true`, it will be the same time tomorrow. If no data for tomorrow is available, it will in practice be next midnight.
 * using `look_ahead`
   * `look_ahead` doesn't automatically include the dates of tomorrow if it is currently after the time set for `end`. That will just make the data selection empty and an error message will be the output of the macro.
   * If `look_ahead` is set to `true`, the start date will always be in the future, unless `mode='is_now'` is set.
