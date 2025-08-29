@@ -3,8 +3,13 @@
 ## 🚨 IMPORTANT NOTES 🚨
 
 * `start` and `end`
-  * When using a `start` and `end` which spans midnight, the output will change after midnight, as the source data will change as well (the data for the previous day will no longer be available). To avoid issues with changing data, it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and trigger it e.g. an hour before your `start` setting.
-  * In case a time string like `"16:00"` is provided for the `end` time, this will be the time today if `inlcude_tomorrow` is not provided or set to `false`. When set to `true`, it will be the same time tomorrow. If no data for tomorrow is available, it will in practice be next midnight.
+  * When using a `start` and `end` which spans midnight, the output will change after midnight, as the source data will change as well (the data for the previous day will no longer be available). To avoid issues with changing data, it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and trigger it e.g. an hour before your `start` setting.  \
+  Selected time period is calculated based on current time "now()".	 \
+  Example start=`"22:00"`, end=`"06:00"`
+    - now() between `06:00` and `23:59` : `end` adjusted to tomorrow at `06:00` \
+      At `14:00` the output **_might change_** as the data for tomorrow will be added.
+    - now() between `00:00` and `05:59` : `start` adjusted to today at `00:00` \
+      At `00:00` the output **_might change_** as the data for the previous day will no longer be available.
 * using `look_ahead`
   * `look_ahead` doesn't automatically include the dates of tomorrow if it is currently after the time set for `end`. That will just make the data selection empty and an error message will be the output of the macro.
   * If `look_ahead` is set to `true`, the start date will always be in the future, unless `mode='is_now'` is set.
