@@ -1,4 +1,4 @@
-{%- set _version = 'v6.0.0b1'-%}
+{%- set _version = 'v6.0.1'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -743,7 +743,7 @@
                             {%- set output.extreme_now = current_price is not none and current_price <= compare_price if lowest else current_price >= compare_price -%}
                         {#- output date based on the selected mode -#}
                             {%- if mode == 'all' -%}
-                                {%- set output = dict(
+                                {%- set macro_output = dict(
                                                         start=output.start,
                                                         end=output.end,
                                                         min=output.min,
