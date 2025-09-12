@@ -1,4 +1,4 @@
-{%- set _version = 'v6.0.1'-%}
+{%- set _version = 'v6.0.2'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -359,13 +359,13 @@
                         {%- set end = end + day if end == today_at() else end -%}
                         {%- set end = end + day if include_tomorrow else end -%}
                     {%- endif -%}
-                    {%- if start > end -%}              {#- START = 20:00, END = 8:00 -#}
-                      {%- if end > n -%}				        {#- NOW() = 04:00, END = 8:00 -#}
-                        {%- set start = start - day -%} {#- Set start yesterday -#}
-                      {%- else -%}				              {#- NOW() = 12:00, END = 8:00 -#}
-                        {%- set end = end + day -%}     {#- Set end tomorrow -#}
-                      {%- endif -%}
-                    {%- endif -%}                       {#- End midnight crossing check -#}
+                    {%- if start > end -%} {#- START = 20:00, END = 8:00 -#}
+                        {%- if end > n -%} {#- NOW() = 04:00, END = 8:00 -#}
+                            {%- set start = start - day -%} {#- Set start yesterday -#}
+                        {%- else -%} {#- NOW() = 12:00, END = 8:00 -#}
+                            {%- set end = end + day -%} {#- Set end tomorrow -#}
+                        {%- endif -%}
+                    {%- endif -%} {#- End midnight crossing check -#}
                     {%- set seconds = end.minute * 60 + end.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, mode='remain') | int -%}
                     {%- set end_dph = _div_calc(seconds, h, dph) | int -%}
@@ -373,7 +373,7 @@
                 {%- set seconds = (h % 1 * 3600) | round(0) -%}
                 {%- set h_dph = _div_calc(seconds, h, dph) | int -%}
             {#- set number of weight points based on all input -#}
-                {%- set dph_list = [start_dph, end_dph, h_dph] | unique | reject('eq', 1) | list -%}
+                {%- set dph_list = [dph, start_dph, end_dph, h_dph] | unique | reject('eq', 1) | list -%}
                 {%- if dph_list | count > 1 and 12 not in dph_list -%}
                     {%- 
                         set dph_list = [12]
@@ -662,11 +662,11 @@
                                                     time_min = _format_date(as_datetime(time_min), time_format | default(none)),
                                                     time_max = _format_date(as_datetime(time_max), time_format | default(none)),
                                                     is_now = is_now,
-                                                    all = split_all | to_json
+                                                    all = split_all
                                                 )
                             -%} 
                         {#- output the data -#}
-                            {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
+                            {%- set macro_output = (output.all if mode == 'split' else output[mode]) | to_json -%}
                     {%- else -%} {#- end for calucations for split -#}
                         {#- create output for all modes if split is set to false -#}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, compare=none, time_min=none, time_max=none, prices_list=[], list=[], is_now=false, extreme_now=none, estimated_costs="unknown") -%}
@@ -780,11 +780,12 @@
                                             original_prices=output.prices_list,
                                             price_count=price_count | default(0),
                                             kwh_list=kwh_list | default([])
-                                        )
+                                        ) if not split else dict()
                     -%}
+
                     {{- dict(
                                 version=_version,
-                                output=macro_output | from_json,
+                                output=macro_output | from_json(default=macro_output),
                                 error=error_msg is defined,
                                 non_default_user_input=non_default,
                                 set_by_macro=set_by_macro,
