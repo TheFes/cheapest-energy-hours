@@ -1,4 +1,4 @@
-{%- set _version = 'v6.0.3'-%}
+{%- set _version = 'v6.0.4'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date(datetime, time_format) -%}
@@ -309,9 +309,37 @@
                         {%- set time = as_local(as_datetime(time)) if time is string else time -%}
                         {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor | float(1)}] -%}
                     {%- endfor -%}
-                    {%- set data = rebuild.data | sort(attribute='time') -%}
+                    {%- set data = rebuild.data | sort(attribute=time_key) -%}
                 {%- endif -%}
-                {%- set dph = int(3600 / (data[1][time_key] - data[0][time_key]).total_seconds() | default(1, true)) if data | count > 1 else 1 -%}
+                {%- set dph = namespace(list=[]) -%}
+                {%- if data | count > 1 -%}
+                    {%- for item in data -%}
+                        {%- if not loop.last -%}
+                            {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
+                            {%- set dph.list = (dph.list + [dp]) | unique | list -%}
+                        {%- endif -%}
+                    {%- endfor -%}
+                {%- endif -%}
+                {%- set dph = dph.list | max | default(1) -%}
+            {#- Rebuild data in case of mixed datapoints per hour -#}
+                {%- if dpns.list | count > 1 -%}
+                    {%- set rebuild = namespace(data=[]) -%}
+                    {%- for item in data -%}
+                        {%- if not loop.last -%}
+                            {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
+                        {%- else -%}
+                            {%- set dp = (3600 / (data[loop.index0][time_key] | as_datetime - data[loop.index0-1][time_key] | as_datetime).seconds) | int -%}
+                        {%- endif -%}
+                        {%- if dp != dph -%}
+                            {%- for i in range((dph/dp)|int) -%}
+                                {%- set rebuild.data = rebuild.data + [{time_key:item[time_key] + timedelta(hours=i*(dp/dph)), value_key:item[value_key]}] -%}
+                            {%- endfor -%}
+                        {%- else -%}
+                            {%- set rebuild.data = rebuild.data + [item] -%}
+                        {%- endif -%}
+                    {%- endfor -%}
+                    {%- set data = rebuild.data | sort(attribute=time_key) -%}
+                {%- endif -%}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
                     {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
