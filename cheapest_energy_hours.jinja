@@ -1,4 +1,4 @@
-{%- set _version = 'v7.0.0b1'-%}
+{%- set _version = 'v7.0.0b2'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date_macro(datetime, time_format, returns) -%}
@@ -314,16 +314,16 @@
                     {%- endfor -%}
                     {%- set data = rebuild.data | sort(attribute=time_key) -%}
                 {%- endif -%}
-                {%- set dph = namespace(list=[]) -%}
+                {%- set dpns = namespace(list=[]) -%}
                 {%- if data | count > 1 -%}
                     {%- for item in data -%}
                         {%- if not loop.last -%}
                             {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
-                            {%- set dph.list = (dph.list + [dp]) | unique | list -%}
+                            {%- set dpns.list = (dpns.list + [dp]) | unique | list -%}
                         {%- endif -%}
                     {%- endfor -%}
                 {%- endif -%}
-                {%- set dph = dph.list | max | default(1) -%}
+                {%- set dph = dpns.list | max | default(1) -%}
             {#- Rebuild data in case of mixed datapoints per hour -#}
                 {%- if dpns.list | count > 1 -%}
                     {%- set rebuild = namespace(data=[]) -%}
