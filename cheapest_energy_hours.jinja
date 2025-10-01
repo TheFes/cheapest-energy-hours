@@ -358,7 +358,7 @@
                     {%- set data = _rebuild_data(data, type='format', time_key=time_key, value_key=value_key, price_factor=price_factor) -%}
                 {%- endif -%}
             {# rebuild to hourly data if requested#}
-                {%- if use_hourly_avg -%}
+                {%- if use_hourly_avg | bool(false) -%}
                     {%- set data = _rebuild_data(data, type='hourly_avg', time_key=time_key, value_key=value_key) -%}
                     {%- set dph = 1 -%}
                 {%- else -%}
