@@ -33,6 +33,8 @@ By default the macro will return the first time block with the cheapest (or high
 ### **price_tolerance** <span style="color:grey">_float or percentage (default: 0.0)_</span>
 When set, prices which are within the price_tolerance compared to the lowest price (highest when `lowest` is set to `false`) are also considered as the lowest (or highest) price. Can be added as a fixed value (eg `0.2`) or as a percentage (eg `"5%"`). In case a percentage is used, it will be used on the lowest price in the time range (or highest price in case `lowest=false`)
 ***
+### **use_hourly_avg** <span style="color:grey">_boolean (default: false)_</span>
+Uses hourly prices instead of multiple prices per hour. The hourly prices are the average of the prices in that hour.
 ### **value_on_error** <span style="color:grey">_anything (default: none)_</span>
 Will be used as output instead of error messages. So for eg in combination with `mode="is_now"`, this can be used to set the output to `false` when there is an error by setting `value_on_error=false`
 
