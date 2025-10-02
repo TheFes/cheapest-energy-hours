@@ -18,6 +18,9 @@ In case you are able to reduce your energy bill by using this macro, please cons
 # What does it do?
 Installing this macro will not create any entities in Home Assistant. It will only provide you with a custom template which can be used in Jinja templating to create template sensors or template binary sesnors yourself. In documentation you will find more information on how to do this, and some examples of real life configurations.
 
+# What does it need?
+To find the lowest price, basically the only thing the macro needs are the prices itself. Those can be provided in a sensor, like e.g. the custom Nordpool integration, using an action with a action response, like with the core Nordpool integration, or maybe from a csv-file.
+
 # How to install
 You need to have Home Assistant 2023.11 or higher installed to use this custom template.
 
