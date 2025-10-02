@@ -1,28 +1,23 @@
-{%- set _version = 'v7.0.0b4'-%}
+{%- set _version = 'v6.0.6'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
-{%- macro _format_date_macro(datetime, time_format, returns) -%}
+{%- macro _format_date(datetime, time_format) -%}
     {%- set datetime = datetime | as_local -%}
-    {%- if time_format == 'isoformat' -%}
-        {%- set output = datetime.isoformat() -%}
-    {%- elif time_format is not none -%}
+    {%- if time_format is not none -%}
         {%- set format = dict(time12='%I:%M %p', time24='%H:%M') -%}
-        {%- set output = datetime.strftime(format[time_format] | default(time_format)) -%}
+        {{- datetime.strftime(format[time_format] | default(time_format)) -}}
     {%- else -%}
-        {%- set output = datetime -%}
+        {{- datetime.isoformat() -}}
     {%- endif -%}
-    {%- do returns(output) -%}
 {%- endmacro -%}
-
-{%- set _format_date = _format_date_macro | as_function -%}
 
 {#- sub-macro to find the right sensor -#}
 {%- macro _find_sensor(attr_today, attr_tomorrow) -%}
     {%- set price_sensors = states.sensor | selectattr('attributes.'~attr_today, 'defined') | selectattr('attributes.'~attr_tomorrow, 'defined') | map(attribute='entity_id') | list -%}
     {%- set price_sensor = namespace(id=none, data_count=0) -%}
     {%- for s in price_sensors if price_sensors | count > 1 -%}
-        {%- set count_today = state_attr(s, attr_today) | default([], true) | count -%}
-        {%- set count_tomorrow = state_attr(s, attr_tomorrow) | default([], true) | count -%}
+        {%- set count_today = state_attr(s, attr_today) | count -%}
+        {%- set count_tomorrow = state_attr(s, attr_tomorrow) | count -%}
         {%- set count_total = count_today + count_tomorrow -%}
         {%- if count_total > price_sensor.data_count -%}
             {%- set price_sensor.data_count = count_total -%}
@@ -101,53 +96,8 @@
         {{- output[mode] -}}
 {%- endmacro -%}
 
-{# macro to rebuild data if needed #}
-{%- macro _rebuild_data_macro(data, returns, time_key='start', value_key='value', price_factor=1, dph=1, type='format') -%}
-    {%- set rebuild = namespace(data=[]) -%}
-    {%- if type == 'format' -%}
-        {%- for item in data -%}
-            {%- set time = item[time_key] -%}
-            {%- set time = as_local(as_datetime(time)) if time is string else time -%}
-            {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor | float(1)}] -%}
-        {%- endfor -%}
-        {%- set output = rebuild.data | sort(attribute=time_key) -%}
-    {%- elif type == 'dph' -%}
-        {%- for item in data -%}
-            {%- if not loop.last -%}
-                {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
-            {%- else -%}
-                {%- set dp = (3600 / (data[loop.index0][time_key] | as_datetime - data[loop.index0-1][time_key] | as_datetime).seconds) | int -%}
-            {%- endif -%}
-            {%- if dp != dph -%}
-                {%- for i in range((dph/dp)|int) -%}
-                    {%- set rebuild.data = rebuild.data + [{time_key:item[time_key] + timedelta(hours=i*(dp/dph)), value_key:item[value_key]}] -%}
-                {%- endfor -%}
-            {%- else -%}
-                {%- set rebuild.data = rebuild.data + [item] -%}
-            {%- endif -%}
-        {%- endfor -%}
-        {%- set output = rebuild.data | sort(attribute=time_key) -%}
-    {%- elif type == 'hourly_avg' -%}
-        {% for item in data %}
-            {%- if not loop.last -%}
-                {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
-            {%- else -%}
-                {%- set dp = (3600 / (data[loop.index0][time_key] | as_datetime - data[loop.index0-1][time_key] | as_datetime).seconds) | int -%}
-            {%- endif -%}
-            {% if loop.index0 % dp == 0 %}
-            {% set avg = data[loop.index0:loop.index0+dp] | map(attribute=value_key) | average | round(3) %}
-            {% set rebuild.data= rebuild.data + [{time_key:item.start, value_key:avg}] %}
-            {% endif %}
-        {% endfor %}
-        {%- set output = rebuild.data | sort(attribute=time_key) -%}
-    {%- endif -%}
-    {%- do returns(output) -%}
-{%- endmacro -%}
-
-{%- set _rebuild_data = _rebuild_data_macro | as_function -%}
-
 {#- main macro -#}
-{%- macro _cheapest_energy_hours(
+{%- macro cheapest_energy_hours(
                                     sensor,
                                     value_on_error,
                                     hours,
@@ -179,8 +129,8 @@
                                     split=false,
                                     debug=false,
                                     price_data=none,
-                                    use_hourly_avg=false,
-                                    returns=none
+                                    datapoints_per_hour='depreciated',
+                                    look_ahead_minutes='depreciated'
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now', 'extreme_now', 'estimated_costs'] -%}
     {#- set input for debugging -#}
@@ -215,8 +165,7 @@
                                         program=none,
                                         plot_sensor='sensor.energy_plots',
                                         plot_attr='energy_plots',
-                                        split=false,
-                                        use_hourly_avg=false
+                                        split=false
                                     )
             -%}
             {%- set user_input = dict(
@@ -224,8 +173,8 @@
                                         price_data=price_data | default(none),
                                         value_on_error= value_on_error | default(none),
                                         hours=hours | default(none) | round(3, default=none),
-                                        start=start if start is datetime else start,
-                                        end=end if end is datetime else end,
+                                        start=start.isoformat() if start is datetime else start,
+                                        end=end.isoformat() if end is datetime else end,
                                         attr_today=attr_today,
                                         attr_tomorrow=attr_tomorrow,
                                         attr_all=attr_all,
@@ -249,8 +198,7 @@
                                         program=program,
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
-                                        split=split,
-                                        use_hourly_avg=use_hourly_avg
+                                        split=split
                                     )
             -%}
             {%- set non_default = dict(user_input.items() | reject('in', defaults.items())) -%}
@@ -355,28 +303,42 @@
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
             {#- Rebuild data from sensor to generic format -#}
                 {%- if data[0][time_key] is not datetime or price_factor != 1 -%}
-                    {%- set data = _rebuild_data(data, type='format', time_key=time_key, value_key=value_key, price_factor=price_factor) -%}
+                    {%- set rebuild = namespace(data=[]) -%}
+                    {%- for item in data -%}
+                        {%- set time = item[time_key] -%}
+                        {%- set time = as_local(as_datetime(time)) if time is string else time -%}
+                        {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor | float(1)}] -%}
+                    {%- endfor -%}
+                    {%- set data = rebuild.data | sort(attribute=time_key) -%}
                 {%- endif -%}
-            {# rebuild to hourly data if requested#}
-                {%- if use_hourly_avg | bool(false) -%}
-                    {%- set data = _rebuild_data(data, type='hourly_avg', time_key=time_key, value_key=value_key) -%}
-                    {%- set dph = 1 -%}
-                {%- else -%}
-                {# check if all datapoints use the same time period #}
-                    {%- set dpns = namespace(list=[]) -%}
-                    {%- if data | count > 1 -%}
-                        {%- for item in data -%}
-                            {%- if not loop.last -%}
-                                {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
-                                {%- set dpns.list = (dpns.list + [dp]) | unique | list -%}
-                            {%- endif -%}
-                        {%- endfor -%}
-                    {%- endif -%}
-                    {%- set dph = dpns.list | max | default(1) -%}
-                {#- Rebuild data in case of mixed datapoints per hour -#}
-                    {%- if dpns.list | count > 1 -%}
-                        {%- set data = _rebuild_data(data, type='dph', time_key=time_key, value_key=value_key, dph=dph) -%}
-                    {%- endif -%}
+                {%- set dpns = namespace(list=[]) -%}
+                {%- if data | count > 1 -%}
+                    {%- for item in data -%}
+                        {%- if not loop.last -%}
+                            {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
+                            {%- set dpns.list = (dpns.list + [dp]) | unique | list -%}
+                        {%- endif -%}
+                    {%- endfor -%}
+                {%- endif -%}
+                {%- set dph = dpns.list | max | default(1) -%}
+            {#- Rebuild data in case of mixed datapoints per hour -#}
+                {%- if dpns.list | count > 1 -%}
+                    {%- set rebuild = namespace(data=[]) -%}
+                    {%- for item in data -%}
+                        {%- if not loop.last -%}
+                            {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
+                        {%- else -%}
+                            {%- set dp = (3600 / (data[loop.index0][time_key] | as_datetime - data[loop.index0-1][time_key] | as_datetime).seconds) | int -%}
+                        {%- endif -%}
+                        {%- if dp != dph -%}
+                            {%- for i in range((dph/dp)|int) -%}
+                                {%- set rebuild.data = rebuild.data + [{time_key:item[time_key] + timedelta(hours=i*(dp/dph)), value_key:item[value_key]}] -%}
+                            {%- endfor -%}
+                        {%- else -%}
+                            {%- set rebuild.data = rebuild.data + [item] -%}
+                        {%- endif -%}
+                    {%- endfor -%}
+                    {%- set data = rebuild.data | sort(attribute=time_key) -%}
                 {%- endif -%}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
@@ -496,8 +458,8 @@
                                         price_data=price_data | default([]),
                                         hours=h | default(hours |default(1, true) | float(1)) | round(3),
                                         value_on_error= value_on_error | default(none),
-                                        start=start if start is datetime else start,
-                                        end=end if end is datetime else end,
+                                        start=start.isoformat() if start is datetime else start,
+                                        end=end.isoformat() if end is datetime else end,
                                         attr_today=attr_today,
                                         attr_tomorrow=attr_tomorrow,
                                         attr_all=attr_all,
@@ -521,8 +483,7 @@
                                         program=program,
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
-                                        split=split,
-                                        use_hourly_avg=use_hourly_avg
+                                        split=split
                                     )
             -%}
             {%- set set_by_macro = dict(macro_input.items() | reject('in', user_input.items())) -%}
@@ -729,10 +690,10 @@
                                                     time_min = _format_date(as_datetime(time_min), time_format | default(none)),
                                                     time_max = _format_date(as_datetime(time_max), time_format | default(none)),
                                                     is_now = is_now,
-                                                    all = split_all
+                                                    all = split_all | to_json
                                                 )
                             -%} 
-                        {#- output the data -#}
+                        {#- set the output variable for the data -#}
                             {%- set macro_output = output.all if mode == 'split' else output[mode] -%}
                     {%- else -%} {#- end for calucations for split -#}
                         {#- create output for all modes if split is set to false -#}
@@ -826,7 +787,7 @@
                                                         datapoints_per_hour=dph,
                                                         hours=h | default(hours | default(1, true) | float(1)),
                                                         datapoints=dp
-                                                    )
+                                                    ) | to_json
                                 -%}
                             {%- else -%}
                                 {%- set macro_output = output[mode] -%}
@@ -837,7 +798,7 @@
                     {%- set v = values | count -%}
                     {%- set h_v = v / no_weight_points | round(3) -%}
                     {%- set error_msg = '1 error: {} datapoints ({} hours) in selection, where {} ({} hours) are expected'.format(v | int, h_v | round(3), dp | int, h | round(3)) -%}
-                    {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
+                    {%- set macro_output = (value_on_error if use_voe and not debug else error_msg) | to_json -%}
                 {%- endif -%}
                 {%- if debug -%}
                     {%- set dict_add = dict(
@@ -850,19 +811,18 @@
                                         ) if not split else dict()
                     -%}
 
-                    {%- set macro_output = dict(
+                    {{- dict(
                                 version=_version,
-                                output=macro_output,
+                                output=macro_output | from_json(default=macro_output),
                                 error=error_msg is defined,
                                 non_default_user_input=non_default,
                                 set_by_macro=set_by_macro,
                                 defaults_used=defaults_used,
                                 data_used=dict(data_used, **dict_add)
-                            )
-                    -%}
+                            ) | to_json
+                    -}}
+                {%- else -%}
+                    {{- macro_output -}}
                 {%- endif -%}
-                {%- do returns(macro_output) -%}
         {%- endif -%}
 {%- endmacro -%}
-
-{%- set cheapest_energy_hours = _cheapest_energy_hours | as_function -%}
