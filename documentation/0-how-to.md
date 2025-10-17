@@ -4,7 +4,7 @@ The information below explains how to use the macro in several sections, each se
 
 ## 🚨 IMPORTANT NOTE 🚨
 
-* The macro doesn't automatically update. If you use it in a template sensor for example, it will only update on changes of the source sensor (which usually happens at midnight, when tomorrow becomes today, and when the prices for tomorrow become available). To make sure it updates on the right interval you can create a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and choose when it should update by adding the right triggers, or add a line with `{% set n = now() %}` in your template to make it update each minute.
+* The result of the macro will automically be updated on every change change of the entities to which is referred to, and at the start of every minute. If for some reason you want to limit this to specific times, you can use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors) and choose when it should update by adding the right triggers.
 
 
 ## CONTENTS
