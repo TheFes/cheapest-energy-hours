@@ -19,7 +19,7 @@ Outputs debug data besides the actual output of the macro
 The number of decimals used for the price output
 ***
 ### **time_format** <span style="color:grey">_string (default: none)_</span>
-You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org)). `time_format='isoformat'` can be used to make the macro not use datetime objects as output, but let it return isoformat datetime strings instead.
+You can use `time12` for the 12-hour format including `AM` or `PM`, `time24` for the 24-hour format, or any custom format using the variables from the python strftime method ([cheatsheet](https://strftime.org)). `time_format='isoformat'` can be used to make the macro not use datetime objects as output, but let it return isoformat datetime strings instead, this is set by default when `mode='all'` is used or `debug` is set to `true`. In other cases the default time format is to return full datetime objects. This can be forced in `mode='all'` by setting `time_format='datetime'`.
 ***
 ### **price_factor** <span style="color:grey">_float (default: 1)_</span>
 All prices will be multiplied with this value. So if your prices are in cents and you want them to be divided by 100, you can use `0.01`. Or if you want to add 20% VAT, you can use `1.2`

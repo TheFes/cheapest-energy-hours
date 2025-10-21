@@ -1,11 +1,11 @@
-{%- set _version = 'v7.0.0'-%}
+{%- set _version = 'v7.0.1'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date_macro(datetime, time_format, returns) -%}
     {%- set datetime = datetime | as_local -%}
     {%- if time_format == 'isoformat' -%}
         {%- set output = datetime.isoformat() -%}
-    {%- elif time_format is not none -%}
+    {%- elif time_format is not none and time_format != 'datetime' -%}
         {%- set format = dict(time12='%I:%M %p', time24='%H:%M') -%}
         {%- set output = datetime.strftime(format[time_format] | default(time_format)) -%}
     {%- else -%}
@@ -491,6 +491,8 @@
                 {%- endif -%}
             {%- endif -%}
         {%- endif -%}
+    {#- set isoformat time_format when needed d-#}
+        {%- set time_format = 'isoformat' if time_format is none and (mode in ['all', 'split'] or debug) else time_format -%}
     {#- set more data for debugging -#}
         {%- if debug -%}
             {%- set macro_input = dict(
@@ -577,7 +579,6 @@
             -%}
     {#- no error - continue with macro -#}
         {%- else -%}
-            {#- set isoformat time_format when needed d-#}
             {#- rebuild data again to match no_weight_points -#}
                 {# split hours if needed #}
                     {%- if dp_minutes > wp_minutes -%}
