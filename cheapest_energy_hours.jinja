@@ -1,4 +1,4 @@
-{%- set _version = 'v7.0.1'-%}
+{%- set _version = 'v7.0.2'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date_macro(datetime, time_format, returns) -%}
@@ -362,21 +362,7 @@
                     {%- set data = _rebuild_data(data, type='hourly_avg', time_key=time_key, value_key=value_key) -%}
                     {%- set dph = 1 -%}
                 {%- else -%}
-                {# check if all datapoints use the same time period #}
-                    {%- set dpns = namespace(list=[]) -%}
-                    {%- if data | count > 1 -%}
-                        {%- for item in data -%}
-                            {%- if not loop.last -%}
-                                {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
-                                {%- set dpns.list = (dpns.list + [dp]) | unique | list -%}
-                            {%- endif -%}
-                        {%- endfor -%}
-                    {%- endif -%}
-                    {%- set dph = dpns.list | max | default(1) -%}
-                {#- Rebuild data in case of mixed datapoints per hour -#}
-                    {%- if dpns.list | count > 1 -%}
-                        {%- set data = _rebuild_data(data, type='dph', time_key=time_key, value_key=value_key, dph=dph) -%}
-                    {%- endif -%}
+                    {%- set dph = int(3600 / (data[1][time_key] - data[0][time_key]).total_seconds() | default(1, true)) if data | count > 1 else 1 -%}
                 {%- endif -%}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
