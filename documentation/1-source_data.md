@@ -54,6 +54,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
 |[Frank Energie](<https://github.com/bajansen/home-assistant-frank_energie>)|No|`attr_all='prices', time_key='from', value_key='price'`||
+|[GE-Spot](<https://github.com/enoch85/ge-spot>)|No|`attr_today='today_interval_prices', attr_tomorrow='tomorrow_interval_prices', time_key='time', value_key='value'`|Interval prices are per 15m, replace `*_interval_prices` with `*_hourly_prices` for prices per 60m|
 |[Octopus Energy](<https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy>)|No|`attr_all='rates', value_key='value_incl_vat'`||
 |[Omie](<https://github.com/luuuis/hass_omie>)|No||Using the template sensor [below](#omie)|
 |[Nordpool](<https://github.com/custom-components/nordpool>)|No||all set by default|
