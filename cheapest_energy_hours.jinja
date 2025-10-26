@@ -1,4 +1,4 @@
-{%- set _version = 'v7.0.3'-%}
+{%- set _version = 'v7.0.4'-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date_macro(datetime, time_format, returns) -%}
@@ -128,15 +128,20 @@
         {%- endfor -%}
         {%- set output = rebuild.data | sort(attribute=time_key) -%}
     {%- elif type == 'hourly_avg' -%}
-        {% for item in data %}
+        {%- set ts = namespace(data=[]) -%}
+        {%- for item in data -%}
+            {% set ts.data = ts.data + [dict(ts=item[time_key] | as_timestamp, price=item[value_key])] -%}
+        {%- endfor -%}
+        {%- set ts_data = ts.data | sort(attribute='ts') | list -%}
+        {% for item in ts_data -%}
             {%- if not loop.last -%}
-                {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
+                {%- set dp = (3600 / (loop.nextitem.ts - item.ts)) | int -%}
             {%- else -%}
-                {%- set dp = (3600 / (data[loop.index0][time_key] | as_datetime - data[loop.index0-1][time_key] | as_datetime).seconds) | int -%}
+                {%- set dp = (3600 / (item.ts - loop.previtem.ts)) | int -%}
             {%- endif -%}
             {% if loop.index0 % dp == 0 %}
-            {% set avg = data[loop.index0:loop.index0+dp] | map(attribute=value_key) | average | round(3) %}
-            {% set rebuild.data= rebuild.data + [{time_key:item.start, value_key:avg}] %}
+            {% set avg = ts_data[loop.index0:loop.index0+dp] | map(attribute='price') | average | round(5) %}
+            {% set rebuild.data= rebuild.data + [{time_key:item.ts | as_datetime | as_local, value_key:avg}] %}
             {% endif %}
         {% endfor %}
         {%- set output = rebuild.data | sort(attribute=time_key) -%}
@@ -357,7 +362,7 @@
                 {%- if data[0][time_key] is not datetime or price_factor != 1 -%}
                     {%- set data = _rebuild_data(data, type='format', time_key=time_key, value_key=value_key, price_factor=price_factor) -%}
                 {%- endif -%}
-            {# rebuild to hourly data if requested#}
+                {# rebuild to hourly data if requested#}
                 {%- if use_hourly_avg -%}
                     {%- set data = _rebuild_data(data, type='hourly_avg', time_key=time_key, value_key=value_key) -%}
                     {%- set dph = 1 -%}
@@ -365,20 +370,19 @@
                 {# check if all datapoints use the same time period #}
                     {%- set dpns = namespace(list=[]) -%}
                     {%- if data | count > 1 -%}
-                        {%- for item in data -%}
+                        {%- for item in data | map(attribute=time_key) | map('as_timestamp') | sort -%}
                             {%- if not loop.last -%}
-                                {%- set sec = ((data[loop.index0+1][time_key] - item[time_key]).seconds) | int -%}
+                                {%- set sec = (3600 / (loop.nextitem - item)) | int -%}
                                 {%- set dpns.list = dpns.list + [sec]-%}
                             {%- endif -%}
                         {%- endfor -%}
-                        {%- set dpdur_list = dpns.list | select('>', 0) | unique | list -%}
+                        {%- set dpdur_list = dpns.list | unique | list -%}
                     {%- endif -%}
-                    {%- set dph = 3600 / (dpdur_list | min | default(3600)) -%}
+                    {%- set dph = dpdur_list | max | default(1) -%}
                 {#- Rebuild data in case of mixed datapoints per hour -#}
                     {%- if dpdur_list | count > 1 -%}
                         {%- set data = _rebuild_data(data, type='dph', time_key=time_key, value_key=value_key, dph=dph) -%}
-                    {%- endif -%}
-                
+                    {%- endif -%}       
                 {%- endif -%}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
