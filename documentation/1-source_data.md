@@ -3,8 +3,8 @@
 These parameters are used to determine where the source data can be found. If you use the custom [Nordpool integration](https://github.com/custom-components/nordpool) (can be downloaded using HACS), or an integration which uses the same attributes, you don't need to provide any of the parameters, but it is advised to provide the `sensor` as it will be more resource friendly if the macro doesn't need to search for it.
 
 ## 🚨 IMPORTANT NOTES 🚨
-* It is advised to provide all parameters if they don't match the defaults. Although the macro will search for the attributes and keys, it is more resource friendly if they are already provided.
-* If your sensor uses other attributes for the data of today and tomorrow, you need to provide the correct `sensor` parameter or the correct `attr_today` and `attr_tomorrow` parameters. It can't find the right sensor if the atrributes differ from the defaults, and it can't find the right attributes if the right sensor is not provided.
+* It is advised to either provide the `source_settings` parameter, or provide all other parameters if they don't match the defaults. The default setting is to use the values as provided by the Nordpool custom integration, so if that is your source, there is no need to set anything. The macro will search for the attributes and keys in case they are not provided, but it is more resource friendly if they are already provided correctly.
+* If your sensor uses other attributes for the data of today and tomorrow, you need to provide the correct `sensor` parameter or the correct `attr_today` and `attr_tomorrow` parameters. It can't find the right sensor if the atrributes differ from the defaults, and it can't find the right attributes if the right sensor is not provided, but as mentioned above, it's best to provide all the correct source parameters.
 * In case `datetime_in_data` is set to `false` the attribute finder will not work, so you need to make sure to set `attr_today`, `attr_tomorrow` and/or `attr_all` yourself.
 
 ## PARAMETERS
@@ -14,6 +14,9 @@ The entity_id of the sensor containing the source data, in case this is not prov
 ***
 ### **price_data** <span style="color:grey">_list_</span>
 A list with the price data of the period you want to use. You can use this in case your energy price integration doesn't provide the price data in sensor attributes, but uses an action with an action response to provide the prices. This way there is no need to create a template sensor with the price data in attributes, but you can use the result from the action response directy. See the section [below](#using-the-action-response-as-input-for-the-macro) for an example.
+### **source_settings** <span style="color:grey">_string (default: nordpool)_</span>
+For certain (custom) integrations the settings for `attr_today`, `attr_tomorrow`, `attr_all`, `time_key`  and `value_key` can be provided in one go using this parameter. The correct value for each integration can be found in the table below. In case any of the parameters is also set, this will overrule the value from `source_settings`, meaning if you use `source_settings='entso-e, value_key='bananas'` the macro will use `bananas` instead of `price` which would be normally used based on the Entso-E source settings.
+***
 ### **attr_today** <span style="color:grey">_string (default: raw_today)_</span>
 The attribute that has the datetimes and prices for today used by the macro
 ***
@@ -47,21 +50,21 @@ The number of minutes each item in the source data represents. Only used in comb
 This section provides the attributes and key settings for energy providers. The name links to the (custom) component used for the data.
 If your provider is missing, you can create a Pull Request to add them, or create an [issue](<https://github.com/TheFes/cheapest-energy-hours/issues/new>), and give the details there so I can add them.
 
-|Data Provider|core integraton|parameters|comment|
-|---|---|---|---|
-|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|Yes|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
-|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
-|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
-|[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
-|[Frank Energie](<https://github.com/bajansen/home-assistant-frank_energie>)|No|`attr_all='prices', time_key='from', value_key='price'`||
-|[GE-Spot](<https://github.com/enoch85/ge-spot>)|No|`attr_today='today_interval_prices', attr_tomorrow='tomorrow_interval_prices', time_key='time', value_key='value'`|Interval prices are per 15m, replace `*_interval_prices` with `*_hourly_prices` for prices per 60m|
-|[Octopus Energy](<https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy>)|No|`attr_all='rates', value_key='value_incl_vat'`||
-|[Omie](<https://github.com/luuuis/hass_omie>)|No||Using the template sensor [below](#omie)|
-|[Nordpool](<https://github.com/custom-components/nordpool>)|No||all set by default|
+|Data Provider|core integraton|source_settings|parameters|comment|
+|---|---|---|---|---|
+|[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|Yes|`amber_electric`|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
+|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes||`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
+|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes||`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
+|[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`entso_e`|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
+|[Frank Energie](<https://github.com/bajansen/home-assistant-frank_energie>)|No|`frank-energie`|`attr_all='prices', time_key='from', value_key='price'`||
+|[GE-Spot](<https://github.com/enoch85/ge-spot>)|No|`ge-spot` or `ge-spot-hourly`|`attr_today='today_interval_prices', attr_tomorrow='tomorrow_interval_prices', time_key='time', value_key='value'`|Interval prices are per 15m, replace `*_interval_prices` with `*_hourly_prices` for prices per 60m|
+|[Octopus Energy](<https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy>)|No|`octopus-energy`|`attr_all='rates', value_key='value_incl_vat'`||
+|[Omie](<https://github.com/luuuis/hass_omie>)|No|||Using the template sensor [below](#omie)|
+|[Nordpool](<https://github.com/custom-components/nordpool>)|No|||all set by default, but `source_settings='nordpool'` can be used as well|
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
-|[Tibber](https://www.home-assistant.io/integrations/tibber/)|Yes|`time_key='start_time'`|Using the template sensor [below](#tibber)|
-|[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No|`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
-|[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`attr_all='forecast', value_key='electricity_price'`||
+|[Tibber](https://www.home-assistant.io/integrations/tibber/)|Yes||`time_key='start_time'`|Using the template sensor [below](#tibber)|
+|[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No||`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
+|[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`zonneplan`|`attr_all='forecast', value_key='electricity_price'`||
 
 ## USING THE ACTION RESPONSE AS INPUT FOR THE MACRO
 
@@ -137,31 +140,95 @@ Home Assistant 2024.11.0 and above is required for this sensor, as the Tibber pr
 ```yaml
 template:
   - triggers:
-      - alias: Triggers every hour
+      - alias: "Every 15 minutes"
         trigger: time_pattern
-        hours: "/1"
-      - alias: Triggers on home assistant startup
+        minutes: "/15"
+      - alias: "After restart of Home Assistant"
         trigger: homeassistant
         event: start
     actions:
-      - alias: Collects the price information and stores this in a response variable
-        action: tibber.get_prices
-        data:
-          start: "{{ (today_at() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
-          end: "{{ (today_at() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
-        response_variable: prices
+      - alias: "Set variables to be used in action section"
+        variables:
+          old_prices: "{{ state_attr('sensor.tibber_prices', 'prices') | default([]) }}"
+          includes:
+            today: >
+              {{ old_prices 
+                | selectattr('start_time', 'search', now().date().isoformat()) 
+                | list 
+                | count >= 92 }}
+            tomorrow: >
+              {{ old_prices 
+                | selectattr('start_time', 'search', (now() + timedelta(days=1)).date().isoformat())
+                | list
+                | count >= 92 }}
+          should_fetch: >
+            {{ not includes.today or (now() > today_at('13:00') and not includes.tomorrow) }}
+      - alias: >
+          Only fetch new prices if the data for today is not already provided in the template sensor
+          or if it's after 13:00 and the data for tomorrow isn't provided yet.
+        choose:
+          - conditions: "{{ should_fetch }}"
+            sequence:
+              - alias: Short delay to avoid everyone calling the API at the same time
+                delay:
+                  seconds: "{{ range(0, 15) | random }}"
+              - alias: "Fetch the prices for yesterday, today and tomorrow"
+                action: tibber.get_prices
+                data:
+                  start: "{{ (today_at('00:00') - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
+                  end: "{{ (today_at('00:00') + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
+                response_variable: response
+      - alias: "Set variables to be used in sensor"
+        variables:
+          prices: "{{ (response.prices.values() | first | default([])) if response is defined else [] }}"
+          updated_prices: "{{ prices or old_prices }}"
+          fetch_time: "{{ now() if prices else state_attr('sensor.tibber_prices', 'last_fetch_time') }}"
+          prices_today: >
+            {{
+              updated_prices
+                | selectattr('start_time', 'search', now().date().isoformat())
+                | map(attribute='price')
+                | list
+            }}
+
     sensor:
-      - unique_id: 4283313c-8ccc-460f-8d4f-92b804cdc711
-        name: tibber_forecast
-        state: "{{ prices.prices.values() | first | selectattr('start_time', '<=', now().isoformat()) | map(attribute='price') | list | last }}"
+      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
+        name: Tibber prices
+        icon: mdi:currency-eur
+        unit_of_measurement: EUR/kWh
+        state_class: measurement
+        state: >
+          {% set price = updated_prices | map(attribute='price') | list %}
+          {% set time = updated_prices | map(attribute='start_time') | map('as_datetime') | list %}
+          {{ zip(price, time) | selectattr('1', '<=', now()) | map(attribute='0') | list | last }}
         attributes:
-          prices: >
-            {% set ns = namespace(prices=[]) %}
-            {% for i in prices.prices.values() | first %}
-              {% set n = dict(start_time = i.start_time, price = i.price) %}
-              {% set ns.prices = ns.prices + [n] %}
-            {% endfor %}
-            {{ ns.prices }}
+          prices: "{{ updated_prices }}"
+          last_fetch_time: "{{ fetch_time }}"
+        availability: "{{ prices_today | count >= 92 }}"
+
+      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8b
+        name: Lowest Tibber price today
+        icon: mdi:currency-eur
+        unit_of_measurement: EUR/kWh
+        state_class: measurement
+        state: "{{ prices_today | min }}"
+        availability: "{{ prices_today | count >= 92 }}"
+
+      - unique_id: ae5b1221-fda3-4bcc-8fd5-3ff12513d4f4
+        name: Highest Tibber price today
+        icon: mdi:currency-eur
+        unit_of_measurement: EUR/kWh
+        state_class: measurement
+        state: "{{ prices_today | max }}"
+        availability: "{{ prices_today | count >= 92 }}"
+
+      - unique_id: 19775ebc-d560-4b10-b43b-9fe09ef7bfa5
+        name: Average Tibber price today
+        icon: mdi:currency-eur
+        unit_of_measurement: EUR/kWh
+        state_class: measurement
+        state: "{{ prices_today | average }}"
+        availability: "{{ prices_today | count >= 92 }}"
 ```
 
 ### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS
