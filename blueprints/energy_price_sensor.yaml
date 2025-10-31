@@ -113,7 +113,6 @@ blueprint:
       description: This is not required for Tibber, but for all other source integrations it is a required field
       selector:
         config_entry:
-      default: null
     price_period:
       name: Price period in minutes
       description: >
