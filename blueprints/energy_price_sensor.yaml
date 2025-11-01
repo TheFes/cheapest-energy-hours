@@ -247,9 +247,6 @@ actions:
                   prices: "{{ prices.prices if prices is defined else [] }}"
           - conditions: "{{ source == 'tibber' }}"
             sequence:
-              - alias: Short delay to avoid everyone calling the API at the same time
-                delay:
-                  seconds: "{{ range(0, 15) | random }}"
               - alias: "Fetch the prices for yesterday, today and tomorrow"
                 action: tibber.get_prices
                 data:
@@ -257,7 +254,7 @@ actions:
                   end: "{{ (today_at('00:00') + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
                 response_variable: prices
               - variables:
-                  prices: "{{ (prices.prices.values() | first | default([])) if response is defined else [] }}"
+                  prices: "{{ prices.prices.values() | first | default([], true) }}"
           - conditions: "{{ source == 'nordpool' }}"
             sequence:
               - if: "{{ price_period == 'source' }}"
