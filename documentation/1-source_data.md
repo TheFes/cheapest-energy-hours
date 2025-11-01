@@ -53,16 +53,17 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |Data Provider|core integraton|source_settings|parameters|comment|
 |---|---|---|---|---|
 |[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|Yes|`amber_electric`|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
-|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes||`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
-|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes||`time_key='timestamp'`|Using the template sensor [below](#energyzero-and-easyenergy)|
+|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
+|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`entso_e`|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
 |[Frank Energie](<https://github.com/bajansen/home-assistant-frank_energie>)|No|`frank-energie`|`attr_all='prices', time_key='from', value_key='price'`||
 |[GE-Spot](<https://github.com/enoch85/ge-spot>)|No|`ge-spot` or `ge-spot-hourly`|`attr_today='today_interval_prices', attr_tomorrow='tomorrow_interval_prices', time_key='time', value_key='value'`|Interval prices are per 15m, replace `*_interval_prices` with `*_hourly_prices` for prices per 60m|
 |[Octopus Energy](<https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy>)|No|`octopus-energy`|`attr_all='rates', value_key='value_incl_vat'`||
 |[Omie](<https://github.com/luuuis/hass_omie>)|No|||Using the template sensor [below](#omie)|
-|[Nordpool](<https://github.com/custom-components/nordpool>)|No|||all set by default, but `source_settings='nordpool'` can be used as well|
+|[Nordpool (custom)](<https://github.com/custom-components/nordpool>)|No|||all set by default, but `source_settings='nordpool'` can be used as well|
+|[Nordpool (core)](<https://www.home-assistant.io/integrations/nordpool/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
-|[Tibber](https://www.home-assistant.io/integrations/tibber/)|Yes||`time_key='start_time'`|Using the template sensor [below](#tibber)|
+|[Tibber](https://www.home-assistant.io/integrations/tibber/)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
 |[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No||`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`zonneplan`|`attr_all='forecast', value_key='electricity_price'`||
 
@@ -98,137 +99,66 @@ template:
 
 ### CREATING A FORECAST SENSOR USING THE ACTION
 
-Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provide the forecast by default in an attribute. However they provide a service call to retrieve the prices. The example below shows how to set up a sensor to be used in the macro. The state of the sensor will be the current price, and the `price` attribute will contain the prices of yesterday, today and tomorrow (when available). Prices will be fetched every hour and upon Home Assistant startup.
+Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provide the forecast by default in an attribute. However they provide an action to retrieve the prices. 
 
-For each energy provider, the configuration differs. In all cases the code above needs to be placed in your `configuration.yaml`. You can use a code editor (like [Visual Studio Code Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=a0d7b954_vscode) or [File Editor Add-on](https://my.home-assistant.io/redirect/supervisor_addon/?addon=core_configurator)). You cannot create these template sensors in the GUI, as trigger based template sensors are not supported as a GUI created template helper.
+I've createad a blueprint to create a template sensor which stores the prices in an attribute. The template sensor will store the prices for yesterday, today and tomorrow (when available). It will trigger every 15 minutes to ensure that the state is updated and reflects the current price.
+
+It will only fetch prices using the action when needed, and only for the periods missing. If all prices are already stored in the sensor, it will only update the state.
+
+The blueprints works with the core integrations for Easy Energy, Energy Zero, Nordpool and Tibber.
+
+To use the blueprint, first import it using the button below:
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTheFes%2Fcheapest-energy-hours%2Ftree%2Fmain%2Fblueprints%2Fenergy_price_sensor.yaml)
+
+Note that after importing the blueprint it will not be shown in Settings > Automations & Scenes > Blueprints. Only automation and script blueprints will be shown there. 
+There is currently no GUI support for template blueprints, so you need to use it with YAML configuration. For the supported integrations you will find examples below.
+
+For some integrations the `config_entry` is required, the easiest way to retrieve this is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) and select an action for this integration. Then using GUI mode select the right integration. Then switch to YAML mode to see the config entry id.
+
+Use the `entity_id` setting to provide the entity id for the template sensor which will be created. If you change this entity_id in the GUI, make sure to also change it in the YAML settings, because it is used in the templates.
 
 #### ENERGYZERO AND EASYENERGY
 
 Notes:
-* The example below is for EnergyZero. For EasyEnergy the service call is `easyenergy.get_energy_usage_prices` instead of `energyzero.get_energy_prices`
-* The `config_entry` value in the service call will differ for each HA instance. The easiest way to get yours is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) and select the action. Make sure you are in UI Mode, and select the right config entry. Switch to YAML mode to see the config entry.
-* When `incl_vat` is set to `true`, the EnergyZero API will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below).
+* When `incl_vat` is set to `true`, the EnergyZero result will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below, and optionally use `add_vat` to include the VAT percentage)
 
 ```yaml
-template:
-  - triggers:
-      - alias: Triggers every hour
-        trigger: time_pattern
-        hours: "/1"
-      - alias: Triggers on home assistant startup
-        trigger: homeassistant
-        event: start
-    actions:
-      - alias: Collects the price information and stores this in a response variable
-        action: energyzero.get_energy_prices # replace with the service call for your integration
-        data:
-          incl_vat: false
-          config_entry: fe7bdc80dd3bc850138998d869f1f19d # replace with the config entry for your entity
-          start: "{{ today_at() - timedelta(days=1) }}"
-          end: "{{ today_at() + timedelta(days=2) }}"
-        response_variable: prices
-    sensor:
-      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
-        name: Energy Zero prices
-        state: "{{ prices.prices | selectattr('timestamp', '<=', utcnow().strftime('%Y-%m-%d %H:%M:%S+00:00')) | map(attribute='price') | list | last }}"
-        attributes:
-          prices: "{{ prices.prices }}"
+- use_blueprint:
+    path: TheFes/energy_price_sensor.yaml
+    input:
+      source: easyenergy # or use energyzero
+      config_entry: 40b3351fd6f7baeae006a00e2a8a78e3
+      incl_vat: false
+      add_vat: 21
+      entity_id: sensor.easyenergy_ceh_prices
+  name: Easy Energy Cheapest Energy Hours
+  unique_id: 9aedf25f-cfa7-4603-bcff-3f0c22a59fa1
+```
+
+#### NORDPOOL
+```yaml
+- use_blueprint:
+    path: TheFes/energy_price_sensor.yaml
+    input:
+      source: nordpool
+      config_entry: 01K7YVVKK4RJ9SA25SZVS0AR19
+      price_factor: 0.001 # conversion from MWh prices to kWh
+      add_vat: 21
+      add_fixed: 0.023 # the fixed price added by your energy provider
+      entity_id: sensor.nordpool_ceh_prices
+  name: Nordpool Cheapest Energy Hours
+  unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
 ```
 
 #### TIBBER
-Home Assistant 2024.11.0 and above is required for this sensor, as the Tibber price output changed in that version
 ```yaml
-template:
-  - triggers:
-      - alias: "Every 15 minutes"
-        trigger: time_pattern
-        minutes: "/15"
-      - alias: "After restart of Home Assistant"
-        trigger: homeassistant
-        event: start
-    actions:
-      - alias: "Set variables to be used in action section"
-        variables:
-          old_prices: "{{ state_attr('sensor.tibber_prices', 'prices') | default([]) }}"
-          includes:
-            today: >
-              {{ old_prices 
-                | selectattr('start_time', 'search', now().date().isoformat()) 
-                | list 
-                | count >= 92 }}
-            tomorrow: >
-              {{ old_prices 
-                | selectattr('start_time', 'search', (now() + timedelta(days=1)).date().isoformat())
-                | list
-                | count >= 92 }}
-          should_fetch: >
-            {{ not includes.today or (now() > today_at('13:00') and not includes.tomorrow) }}
-      - alias: >
-          Only fetch new prices if the data for today is not already provided in the template sensor
-          or if it's after 13:00 and the data for tomorrow isn't provided yet.
-        choose:
-          - conditions: "{{ should_fetch }}"
-            sequence:
-              - alias: Short delay to avoid everyone calling the API at the same time
-                delay:
-                  seconds: "{{ range(0, 15) | random }}"
-              - alias: "Fetch the prices for yesterday, today and tomorrow"
-                action: tibber.get_prices
-                data:
-                  start: "{{ (today_at('00:00') - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
-                  end: "{{ (today_at('00:00') + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
-                response_variable: response
-      - alias: "Set variables to be used in sensor"
-        variables:
-          prices: "{{ (response.prices.values() | first | default([])) if response is defined else [] }}"
-          updated_prices: "{{ prices or old_prices }}"
-          fetch_time: "{{ now() if prices else state_attr('sensor.tibber_prices', 'last_fetch_time') }}"
-          prices_today: >
-            {{
-              updated_prices
-                | selectattr('start_time', 'search', now().date().isoformat())
-                | map(attribute='price')
-                | list
-            }}
-
-    sensor:
-      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8a
-        name: Tibber prices
-        icon: mdi:currency-eur
-        unit_of_measurement: EUR/kWh
-        state_class: measurement
-        state: >
-          {% set price = updated_prices | map(attribute='price') | list %}
-          {% set time = updated_prices | map(attribute='start_time') | map('as_datetime') | list %}
-          {{ zip(price, time) | selectattr('1', '<=', now()) | map(attribute='0') | list | last }}
-        attributes:
-          prices: "{{ updated_prices }}"
-          last_fetch_time: "{{ fetch_time }}"
-        availability: "{{ prices_today | count >= 92 }}"
-
-      - unique_id: 79c470d8-4ccd-4f44-b3a2-e3d59d5dda8b
-        name: Lowest Tibber price today
-        icon: mdi:currency-eur
-        unit_of_measurement: EUR/kWh
-        state_class: measurement
-        state: "{{ prices_today | min }}"
-        availability: "{{ prices_today | count >= 92 }}"
-
-      - unique_id: ae5b1221-fda3-4bcc-8fd5-3ff12513d4f4
-        name: Highest Tibber price today
-        icon: mdi:currency-eur
-        unit_of_measurement: EUR/kWh
-        state_class: measurement
-        state: "{{ prices_today | max }}"
-        availability: "{{ prices_today | count >= 92 }}"
-
-      - unique_id: 19775ebc-d560-4b10-b43b-9fe09ef7bfa5
-        name: Average Tibber price today
-        icon: mdi:currency-eur
-        unit_of_measurement: EUR/kWh
-        state_class: measurement
-        state: "{{ prices_today | average }}"
-        availability: "{{ prices_today | count >= 92 }}"
+- use_blueprint:
+    path: TheFes/energy_price_sensor.yaml
+    input:
+      source: tibber
+      entity_id: sensor.tibber_ceh_prices
+  name: Tibber Cheapest Energy Hours
+  unique_id: 2fc0bc4c-10c0-4844-8c12-ff50a80d44c8
 ```
 
 ### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS

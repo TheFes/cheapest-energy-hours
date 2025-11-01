@@ -1,86 +1,86 @@
 blueprint:
   name: Cheapest Energy Hours price sensor
   description: "# Cheapest Energy Hours price sensor
-    
+
     This blueprint creates a sensor with a `prices` attribute which contains the prices
     from yesterday, today and tomorrow (if available). These prices can be used in the
     Cheapest Energy Hours macro.
-    
-    
+
+
     The blueprint can be used with the following integrations
-    
+
     - Easy Energy
-    
+
     - Energy Zero
-    
+
     - Nordpool
-    
+
     - Tibber
-    
-    
+
+
     The following inputs can be used in this blueprint:
-    
+
     |input|default|description|
-    
+
     |---|---|---|
-    
+
     |`source`|`null`|The integration to be used as source, possible values are
     `easyenergy`, `energyzero`, `nordpool`, `tibber`|
-    
+
     |`entity_id`|`sensor.cheapest_energy_hour_prices`|The entity id to be used for the template
     sensor|
-    
+
     |`config_entry`|`null`|Required for Easy Energy, Energy Zero and Nordpool. To find it the
     easiest method is to go to Developer tools > Actions and use one of the actions provided
     by the integration in GUI mode, select the config entry and then switch to YAML mode|
-    
+
     |`price_period`|`source`|The period in minutes to be used for the prices stored
     in the sensor. Possible values are `15`, `60` and `source`. This can be used to create
     hourly prices when the intgration provides prices per 15 minutes. By default it will use
     the same period as used in the source integration.|
-    
+
     |`include_vat`|`false`|Only used for Easy Energy and Energy Zero. There is an option in
     the action to retreive the prices to include VAT. By default this is set to `false` as for
     Energy Zero this will result in prices rounded to 2 decimals. The `add_vat` input can be
     used to add VAT as well, but keep the precision.|
-    
+
     |`add_vat`|`0`|VAT perecentage which will be added to the prices|
-    
+
     |`add_fixed`|`0`|Can be used to add a fixed value to the prices. If you use the Nordpool
     integration you can use this to add the fixed uplift charged by your energy provider.|
-    
+
     |`price_factor`|`1`|All prices will be multiplied with this value. This can be used for the
     Nordpool integration as prices are provided in MWh. You can use `0.001` to convert to kWh|
-    
-    
+
+
     Example:
-    
+
     ```yaml
-    
+
     template:
-    
+
       - use_blueprint:
-    
-      path: TheFes/energy_price_sensor.yaml
-    
-      input:
-    
-        source: nordpool
-    
-        config_entry: 01K7YVVKK4RJ9SA25SZVS0AR19
-    
-        entity_id: sensor.nordpool_ceh_prices
-    
-        price_factor: 0.001
-    
-        add_vat: 21
-    
-        add_fixed: 0.0023
-    
-      name: Nordpool Cheapest Energy Hours
-    
-      unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
-    
+
+          path: TheFes/energy_price_sensor.yaml
+
+          input:
+
+            source: nordpool
+
+            config_entry: 01K7YVVKK4RJ9SA25SZVS0AR19
+
+            entity_id: sensor.nordpool_ceh_prices
+
+            price_factor: 0.001
+
+            add_vat: 21
+
+            add_fixed: 0.0023
+
+          name: Nordpool Cheapest Energy Hours
+
+          unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
+
     ```"
   author: TheFes
   source_url: https://github.com/TheFes/HA-configuration/blob/main/blueprints/template/TheFes/nordpool_hourly.yaml
@@ -175,25 +175,26 @@ variables:
   add_vat: !input add_vat
   add_fixed: !input add_fixed
   old_prices: "{{ state_attr(entity_id, 'prices') | default([], true) }}"
-  min_values: >
-    {{
-      23 if old_prices | count < 2
-      else
-        23 * (3600 / (old_prices[1].start | as_datetime - old_prices[0].start | as_datetime).seconds)
-    }}
-  includes:
-    today: >
-      {{ old_prices 
+  fetch: >
+    {% set yesterday = old_prices 
+        | selectattr('start', 'search', (now().date()-timedelta(days=1)).isoformat())
+        | list
+        | count < 23
+        or trigger.id == 'event' %}
+    {% set today = old_prices 
         | selectattr('start', 'search', now().date().isoformat())
         | list
-        | count >= min_values }}
-    tomorrow: >
-      {{ old_prices 
-        | selectattr('start', 'search', (now() + timedelta(days=1)).date().isoformat())
+        | count < 23
+        or trigger.id == 'event' %}
+    {% set tomorrow = (old_prices 
+        | selectattr('start', 'search', (now().date()+timedelta(days=1)).isoformat())
         | list
-        | count >= min_values }}
+        | count < 23 
+        and now() > today_at('13:00'))
+        or trigger.id =='event' %}
+    {{ dict(yesterday=yesterday, today=today, tomorrow=tomorrow) }}
   should_fetch: >
-    {{ not includes.today or (now() > today_at('13:00') and not includes.tomorrow) }}
+    {{ fetch.yesterday or fetch.today or fetch.tomorrow }}
   mapping:
     easyenergy:
       time_key: timestamp
@@ -222,7 +223,7 @@ triggers:
 
 actions:
   - alias: "Fetch new prices if needed"
-    if: "{{ trigger.id == 'event' or should_fetch }}"
+    if: "{{ should_fetch }}"
     then:
       - alias: Short delay to avoid everyone calling the API at the same time
         delay:
@@ -240,9 +241,27 @@ actions:
                 data:
                   incl_vat: "{{ include_vat }}"
                   config_entry: !input config_entry
-                  start: "{{ today_at() - timedelta(days=1) }}"
-                  end: "{{ today_at() + timedelta(days=2) }}"
+                  start: >
+                    {% if fetch.yesterday %}
+                      {% set delta = -1 %}
+                    {% elif fetch.today %}
+                      {% set delta = 0 %}
+                    {% else %}
+                      {% set delta = 1 %}
+                    {% endif %}
+                    {{ today_at() + timedelta(days=delta) }}
+                  end: >
+                    {% if fetch.tomorrow %}
+                      {% set delta = 2 %}
+                    {% elif fetch.today %}
+                      {% set delta = 1 %}
+                    {% else %}
+                      {% set delta = 0 %}
+                    {% endif %}
+                    {{ today_at() + timedelta(days=delta) }}
+                    {{ today_at() + timedelta(days=delta) }}
                 response_variable: prices
+                continue_on_error: true
               - variables:
                   prices: "{{ prices.prices if prices is defined else [] }}"
           - conditions: "{{ source == 'tibber' }}"
@@ -250,8 +269,24 @@ actions:
               - alias: "Fetch the prices for yesterday, today and tomorrow"
                 action: tibber.get_prices
                 data:
-                  start: "{{ (today_at('00:00') - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
-                  end: "{{ (today_at('00:00') + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S') }}"
+                  start: >
+                    {% if fetch.yesterday %}
+                      {% set delta = -1 %}
+                    {% elif fetch.today %}
+                      {% set delta = 0 %}
+                    {% else %}
+                      {% set delta = 1 %}
+                    {% endif %}
+                    {{ (today_at('00:00') - timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
+                  end: >
+                    {% if fetch.tomorrow %}
+                      {% set delta = 2 %}
+                    {% elif fetch.today %}
+                      {% set delta = 1 %}
+                    {% else %}
+                      {% set delta = 0 %}
+                    {% endif %}
+                    {{ (today_at('00:00') + timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
                 response_variable: prices
               - variables:
                   prices: "{{ prices.prices.values() | first | default([], true) }}"
@@ -275,29 +310,41 @@ actions:
                       date: "{{ now().date() + timedelta(days=1) }}"
                     response_variable: tomorrow
                 else:
-                  - action: nordpool.get_price_indices_for_date
-                    data:
-                      config_entry: !input config_entry
-                      date: "{{ now().date() - timedelta(days=1) }}"
-                      resolution: "{{ time_period | int }}"
-                    response_variable: yesterday
-                  - action: nordpool.get_price_indices_for_date
-                    data:
-                      config_entry: !input config_entry
-                      date: "{{ now().date() }}"
-                      resolution: "{{ time_period | int }}"
-                    response_variable: today
-                  - action: nordpool.get_price_indices_for_date
-                    data:
-                      config_entry: !input config_entry
-                      date: "{{ now().date() + timedelta(days=1) }}"
-                      resolution: "{{ time_period | int }}"
-                    response_variable: tomorrow
+                  - if: "{{ fetch.yesterday }}"
+                    then:
+                      - action: nordpool.get_price_indices_for_date
+                        data:
+                          config_entry: !input config_entry
+                          date: "{{ now().date() - timedelta(days=1) }}"
+                          resolution: "{{ time_period | int }}"
+                        response_variable: yesterday
+                      - variables:
+                          yesterday: "{{ yesterday.values() | first }}"
+                  - if: "{{ fetch.today }}"
+                    then:
+                      - action: nordpool.get_price_indices_for_date
+                        data:
+                          config_entry: !input config_entry
+                          date: "{{ now().date() }}"
+                          resolution: "{{ time_period | int }}"
+                        response_variable: today
+                      - variables:
+                          today: "{{ today.values() | first }}"
+                  - if: "{{ fetch.tomorrow }}"
+                    then:
+                      - action: nordpool.get_price_indices_for_date
+                        data:
+                          config_entry: !input config_entry
+                          date: "{{ now().date() + timedelta(days=1) }}"
+                          resolution: "{{ time_period | int }}"
+                        response_variable: tomorrow
+                      - variables:
+                          tomorrow: "{{ tomorrow.values() | first }}"
               - variables:
-                  prices: "{{ today.values() | first + tomorrow.values() | first }}"
+                  prices: "{{ [yesterday, today, tomorrow] | select('defined') | flatten(1) }}"
       - alias: Update result to generic format and apply price_period if needed
         variables:
-          prices: >
+          new_prices: >
             {% set time_key = mapping[source].time_key %}
             {% set value_key = mapping[source].value_key %}
             {% set ns = namespace(prices=[], processed=false) %}
@@ -336,8 +383,16 @@ actions:
             {{ ns.prices }}
   - alias: "Set variables to be used in sensor"
     variables:
-      updated_prices: "{{ prices | default(false) or old_prices }}"
-      fetch_time: "{{ now() if prices is defined and prices else state_attr(entity_id, 'last_fetch_time') }}"
+      updated_prices: >
+        {{
+          (old_prices
+            | selectattr('start', '>=', (today_at('00:00') - timedelta(days=1)).isoformat())
+            | list + new_prices)
+              | unique(attribute='start')
+              | list
+              | sort(attribute='start')
+        }}
+      fetch_time: "{{ now() if should_fetch else state_attr(entity_id, 'last_fetch_time') }}"
       prices_today: >
         {{
           updated_prices
@@ -358,4 +413,4 @@ sensor:
   attributes:
     prices: "{{ updated_prices }}"
     last_fetch_time: "{{ fetch_time }}"
-  availability: "{{ prices_today | count >= min_values }}"
+  availability: "{{ prices_today | count >= 23 }}"
