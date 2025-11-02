@@ -341,6 +341,7 @@ actions:
             {% set time_key = mapping[source].time_key %}
             {% set value_key = mapping[source].value_key %}
             {% set ns = namespace(prices=[]) %}
+            {% for price in prices %}
               {% set t = (price[time_key] | as_datetime | as_local).isoformat() %}
               {% set p = price[value_key] * price_factor * (1 + add_vat / 100) + add_fixed %}
               {% set ns.prices = ns.prices + [dict(start=t, price=p | round(5))] %}
