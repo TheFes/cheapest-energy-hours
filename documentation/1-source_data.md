@@ -63,8 +63,8 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |[Nordpool (custom)](<https://github.com/custom-components/nordpool>)|No|||all set by default, but `source_settings='nordpool'` can be used as well|
 |[Nordpool (core)](<https://www.home-assistant.io/integrations/nordpool/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
-|[Tibber](https://www.home-assistant.io/integrations/tibber/)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
-|[Tibber](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No||`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
+|[Tibber (core)](https://www.home-assistant.io/integrations/tibber/)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
+|[Tibber (custom)](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No||`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`zonneplan`|`attr_all='forecast', value_key='electricity_price'`||
 
 ## USING THE ACTION RESPONSE AS INPUT FOR THE MACRO
@@ -103,63 +103,7 @@ Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/int
 
 I've createad a blueprint to create a template sensor which stores the prices in an attribute. The template sensor will store the prices for yesterday, today and tomorrow (when available). It will trigger every 15 minutes to ensure that the state is updated and reflects the current price.
 
-It will only fetch prices using the action when needed, and only for the periods missing. If all prices are already stored in the sensor, it will only update the state.
-
-The blueprints works with the core integrations for Easy Energy, Energy Zero, Nordpool and Tibber.
-
-To use the blueprint, first import it using the button below:
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTheFes%2Fcheapest-energy-hours%2Ftree%2Fmain%2Fblueprints%2Fenergy_price_sensor.yaml)
-
-Note that after importing the blueprint it will not be shown in Settings > Automations & Scenes > Blueprints. Only automation and script blueprints will be shown there. 
-There is currently no GUI support for template blueprints, so you need to use it with YAML configuration. For the supported integrations you will find examples below.
-
-For some integrations the `config_entry` is required, the easiest way to retrieve this is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) and select an action for this integration. Then using GUI mode select the right integration. Then switch to YAML mode to see the config entry id.
-
-Use the `entity_id` setting to provide the entity id for the template sensor which will be created. If you change this entity_id in the GUI, make sure to also change it in the YAML settings, because it is used in the templates.
-
-#### ENERGYZERO AND EASYENERGY
-
-Notes:
-* When `incl_vat` is set to `true`, the EnergyZero result will use a 2 decimal precision, when set to `false` it will be 5 decimal precision. If you want more precise prices, set `incl_vat` to `false` (like in the example below, and optionally use `add_vat` to include the VAT percentage)
-
-```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      source: easyenergy # or use energyzero
-      config_entry: 40b3351fd6f7baeae006a00e2a8a78e3
-      incl_vat: false
-      add_vat: 21
-      entity_id: sensor.easyenergy_ceh_prices
-  name: Easy Energy Cheapest Energy Hours
-  unique_id: 9aedf25f-cfa7-4603-bcff-3f0c22a59fa1
-```
-
-#### NORDPOOL
-```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      source: nordpool
-      config_entry: 01K7YVVKK4RJ9SA25SZVS0AR19
-      price_factor: 0.001 # conversion from MWh prices to kWh
-      add_vat: 21
-      add_fixed: 0.023 # the fixed price added by your energy provider
-      entity_id: sensor.nordpool_ceh_prices
-  name: Nordpool Cheapest Energy Hours
-  unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
-```
-
-#### TIBBER
-```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      source: tibber
-      entity_id: sensor.tibber_ceh_prices
-  name: Tibber Cheapest Energy Hours
-  unique_id: 2fc0bc4c-10c0-4844-8c12-ff50a80d44c8
-```
+More information on how to use this blueprint can be found [here](#blueprints/)
 
 ### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS
 

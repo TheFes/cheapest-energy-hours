@@ -1,87 +1,88 @@
 blueprint:
   name: Cheapest Energy Hours price sensor
-  description: "# Cheapest Energy Hours price sensor
+  description: '# Cheapest Energy Hours price sensor
+
+
+    <img width="512" height="256" alt="dark_logo" src="https://github.com/user-attachments/assets/afee8c82-0367-42b0-ab3a-91e86079b48d" />
+
 
     This blueprint creates a sensor with a `prices` attribute which contains the prices
     from yesterday, today and tomorrow (if available). These prices can be used in the
     Cheapest Energy Hours macro.
 
 
-    The blueprint can be used with the following integrations
+    The blueprint can be used with the following core Home Assistant integrations
 
-    - Easy Energy
 
-    - Energy Zero
+    - [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)
 
-    - Nordpool
+    - [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)
 
-    - Tibber
+    - [Nordpool](<https://www.home-assistant.io/integrations/nordpool/>)
+
+    - [Tibber](https://www.home-assistant.io/integrations/tibber/)
 
 
     The following inputs can be used in this blueprint:
 
-    |input|default|description|
 
-    |---|---|---|
+    ### **<ins>entity_id</ins>** <span style="color:grey">_string (default: sensor.cheapest_energy_hour_prices)_</span>
+    
+    The entity_id which will be used for the template sensor. It is important that the entity_id matches the actual entity_id
+    of the template sensor. So if you change it in the GUI, make sure to change it in the settings for the template sensor as
+    well
 
-    |`source`|`null`|The integration to be used as source, possible values are
-    `easyenergy`, `energyzero`, `nordpool`, `tibber`|
+    ***
+    
+    ### **<ins>source</ins>** <span style="color:grey">_string (default: null, possible options: easyenergy, energyzero, nordpool, tibber)_</span>
+    
+    The source integration to be used by the blueprint. If no input is given, the blueprint will try to find one of the integrations. 
+    Note that this can lead to issues if the custom Tibber or custom Nordpool integration is installed. It is advised to select the right
+    integration here.
 
-    |`entity_id`|`sensor.cheapest_energy_hour_prices`|The entity id to be used for the template
-    sensor|
+    ***
+    
+    ### **<ins>config_entry</ins>** <span style="color:grey">_string (default: null)_</span>
+    
+    The config entry id for the integration to be used by the blueprint. The blueprint will try to find this based on the source, but
+    as it takes the first config entry id it can find, it can be advised to enter it yourself if you have multiple instances of the same
+    integraton. To find it the easiest method is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) 
+    and use one of the actions provided by the integration in GUI mode, select the config entry and then switch to YAML mode.
 
-    |`config_entry`|`null`|Required for Easy Energy, Energy Zero and Nordpool. To find it the
-    easiest method is to go to Developer tools > Actions and use one of the actions provided
-    by the integration in GUI mode, select the config entry and then switch to YAML mode|
+    ***
+    
+    ### **<ins>resolution</ins>** <span style="color:grey">_integer (default: 15, possible options: 15, 30, 60)_</span>
+    
+    This setting is only used for Nordpool. By default 15 minute prices are fetched from Norpool, but you can set this to 30 or 60
+    to get the prices for those time periods. If you set it to any other value than 15, 30 or 60, then a 15 minute resolution will
+    be used.
 
-    |`price_period`|`source`|The period in minutes to be used for the prices stored
-    in the sensor. Possible values are `15`, `60` and `source`. This can be used to create
-    hourly prices when the intgration provides prices per 15 minutes. By default it will use
-    the same period as used in the source integration.|
+    ***
+    
+    ### **<ins>add_vat</ins>** <span style="color:grey">_float (default: 0)_</span>
+    
+    VAT perecentage which will be added to the prices
 
-    |`include_vat`|`false`|Only used for Easy Energy and Energy Zero. There is an option in
-    the action to retreive the prices to include VAT. By default this is set to `false` as for
-    Energy Zero this will result in prices rounded to 2 decimals. The `add_vat` input can be
-    used to add VAT as well, but keep the precision.|
+    ***
 
-    |`add_vat`|`0`|VAT perecentage which will be added to the prices|
+    ### **<ins>add_fixed</ins>** <span style="color:grey">_float (default: 0)_</span>
+    
+    Fixed price which will be added to the prices. This can be used to add the uplift from your energy provider in case you use
+    the Nordpool integration.
 
-    |`add_fixed`|`0`|Can be used to add a fixed value to the prices. If you use the Nordpool
-    integration you can use this to add the fixed uplift charged by your energy provider.|
+    ***
 
-    |`price_factor`|`1`|All prices will be multiplied with this value. This can be used for the
-    Nordpool integration as prices are provided in MWh. You can use `0.001` to convert to kWh|
+    ### **<ins>price_factor</ins>** <span style="color:grey">_float (default: 1 or 0.001)_</span>
+    
+    All prices will be multiplied with this value. This will be applied before adding VAT or a fixed value.
+    For most integrations this is set to 1 by default, but for Nordpool this is set to 0.001 as the prices
+    provided by the Nordpool integration are for MWh instead of kWh.
 
-
-    Example:
-
-    ```yaml
-
-    template:
-
-      - use_blueprint:
-
-          path: TheFes/energy_price_sensor.yaml
-
-          input:
-
-            source: nordpool
-
-            config_entry: 01K7YVVKK4RJ9SA25SZVS0AR19
-
-            entity_id: sensor.nordpool_ceh_prices
-
-            price_factor: 0.001
-
-            add_vat: 21
-
-            add_fixed: 0.0023
-
-          name: Nordpool Cheapest Energy Hours
-
-          unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
-
-    ```"
+    ***
+ 
+    For more details on how to use the blueprint and examples for each integration,
+    see the [documentation](<#../documentation/blueprints/energy_price_sensor.md>).
+    '
   author: TheFes
   source_url: https://github.com/TheFes/HA-configuration/blob/main/blueprints/template/TheFes/nordpool_hourly.yaml
   domain: template
@@ -100,6 +101,7 @@ blueprint:
               value: nordpool
             - label: Tibber
               value: tibber
+      default: null
     entity_id:
       name: Entity id for template sensor
       description: The entity_id which will be used for the template sensor created using this blueprint
@@ -129,12 +131,6 @@ blueprint:
           mode: box
           unit_of_measurement: min
       default: 15
-    include_vat:
-      name: Include VAT in prices
-      description:
-        Only used for EasyEnergy and EnergyZero. Note that for EnergyZero this the prices will be rounded to 2
-        decimal precision if include VAT is enabled.
-      default: false
     add_vat:
       name: VAT % to add to the prices
       description: Set a percentage here if you want to add VAT to the prices provided by the source integration
@@ -170,7 +166,21 @@ blueprint:
 variables:
   entity_id: !input entity_id
   resolution: !input resolution
-  source: !input source
+  source_input: !input source
+  source: >
+    {% if source_input is not none %}
+      {{ source_input }}
+    {% elif integration_entities('easyenergy') | count > 0 %}
+      easyenergy
+    {% elif integration_entities('energyzero') | count > 0 %}
+      energyzero
+    {% elif integration_entities('nordpool') | count > 0 %}
+      nordpool
+    {% elif integration_entities('tibber') | count > 0 %}
+      tibber
+    {% else %}
+      {{ none }}
+    {% endif %}
   config_entry_input: !input config_entry
   config_entry: >
     {{ config_entry
@@ -179,7 +189,6 @@ variables:
           | default
           | config_entry_id, true)
     }}
-  include_vat: !input include_vat
   price_factor_input: !input price_factor
   price_factor: "{{ price_factor_input | default(0.001 if source == 'nordpool' else 1, true) }}"
   add_vat: !input add_vat
@@ -249,7 +258,7 @@ actions:
                     else 'energyzero.get_energy_prices'
                   }}
                 data:
-                  incl_vat: "{{ include_vat }}"
+                  incl_vat: false
                   config_entry: "{{ config_entry }}"
                   start: >
                     {% if fetch.yesterday %}
@@ -268,7 +277,6 @@ actions:
                     {% else %}
                       {% set delta = 0 %}
                     {% endif %}
-                    {{ today_at() + timedelta(days=delta) }}
                     {{ today_at() + timedelta(days=delta) }}
                 response_variable: prices
                 continue_on_error: true
@@ -302,37 +310,36 @@ actions:
                   prices: "{{ prices.prices.values() | first | default([], true) }}"
           - conditions: "{{ source == 'nordpool' }}"
             sequence:
-              - sequence:
-                  - if: "{{ fetch.yesterday }}"
-                    then:
-                      - action: nordpool.get_price_indices_for_date
-                        data:
-                          config_entry: "{{ config_entry}}"
-                          date: "{{ now().date() - timedelta(days=1) }}"
-                          resolution: "{{ resolution }}"
-                        response_variable: yesterday
-                      - variables:
-                          yesterday: "{{ yesterday.values() | first }}"
-                  - if: "{{ fetch.today }}"
-                    then:
-                      - action: nordpool.get_price_indices_for_date
-                        data:
-                          config_entry: "{{ config_entry}}"
-                          date: "{{ now().date() }}"
-                          resolution: "{{ resolution }}"
-                        response_variable: today
-                      - variables:
-                          today: "{{ today.values() | first }}"
-                  - if: "{{ fetch.tomorrow }}"
-                    then:
-                      - action: nordpool.get_price_indices_for_date
-                        data:
-                          config_entry: "{{ config_entry}}"
-                          date: "{{ now().date() + timedelta(days=1) }}"
-                          resolution: "{{ resolution }}"
-                        response_variable: tomorrow
-                      - variables:
-                          tomorrow: "{{ tomorrow.values() | first }}"
+              - if: "{{ fetch.yesterday }}"
+                then:
+                  - action: nordpool.get_price_indices_for_date
+                    data:
+                      config_entry: "{{ config_entry}}"
+                      date: "{{ now().date() - timedelta(days=1) }}"
+                      resolution: "{{ resolution }}"
+                    response_variable: yesterday
+                  - variables:
+                      yesterday: "{{ yesterday.values() | first }}"
+              - if: "{{ fetch.today }}"
+                then:
+                  - action: nordpool.get_price_indices_for_date
+                    data:
+                      config_entry: "{{ config_entry}}"
+                      date: "{{ now().date() }}"
+                      resolution: "{{ resolution }}"
+                    response_variable: today
+                  - variables:
+                      today: "{{ today.values() | first }}"
+              - if: "{{ fetch.tomorrow }}"
+                then:
+                  - action: nordpool.get_price_indices_for_date
+                    data:
+                      config_entry: "{{ config_entry}}"
+                      date: "{{ now().date() + timedelta(days=1) }}"
+                      resolution: "{{ resolution }}"
+                    response_variable: tomorrow
+                  - variables:
+                      tomorrow: "{{ tomorrow.values() | first }}"
               - variables:
                   prices: "{{ [yesterday, today, tomorrow] | select('defined') | flatten(1) }}"
       - alias: Update result to generic format and apply VAT and fixed price if needed
@@ -353,7 +360,7 @@ actions:
         {{
           (old_prices
             | selectattr('start', '>=', (today_at('00:00') - timedelta(days=1)).isoformat())
-            | list + new_prices)
+            | list + new_prices | default([]))
               | unique(attribute='start')
               | list
               | sort(attribute='start')
@@ -365,6 +372,7 @@ actions:
             | selectattr('start', 'search', now().date().isoformat())
             | map(attribute='price')
             | list
+            | count
         }}
 
 sensor:
@@ -379,4 +387,4 @@ sensor:
   attributes:
     prices: "{{ updated_prices }}"
     last_fetch_time: "{{ fetch_time }}"
-  availability: "{{ prices_today | count >= 23 }}"
+  availability: "{{ prices_today >= 23 }}"
