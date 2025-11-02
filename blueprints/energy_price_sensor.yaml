@@ -114,21 +114,21 @@ blueprint:
       selector:
         config_entry:
       default: null
-    price_period:
-      name: Price period in minutes
+    resolution:
+      name: Resolution time
       description: >
-        The price period used for the output of the price data. This can be used to force the output to a different period
-        compared to the source integration. By default the price period as provided by the source will be used.
+        The resolution used for the output of the price data for the Nordpool integration in minutes.
+        This can be used to force the output to hourly prices. Possible values are 15, 30 and 60.
+        By default 15 minutes will be used, this will also be used if a value other than 15, 30 or
+        60 is set.
       selector:
-        select:
-          options:
-            - label: 60 minutes
-              value: "60"
-            - label: 15 minutes
-              value: "15"
-            - label: Use source
-              value: source
-      default: source
+        number:
+          min: 15
+          max: 60
+          step: 15
+          mode: box
+          unit_of_measurement: min
+      default: 15
     include_vat:
       name: Include VAT in prices
       description:
@@ -160,18 +160,28 @@ blueprint:
       description:
         Value which will be used to multiply the prices with. If the source integration e.g. provides the prices
         in cents, but you want them in EUR, you can use 0.01 as price factor.
+        By default 1 is used, only for Nordpool the default is 0.001 as the integration provides the prices in MWh.
       selector:
         number:
           step: "any"
           mode: "box"
-      default: 1
+      default: null
 
 variables:
   entity_id: !input entity_id
-  price_period: !input price_period
+  resolution: !input resolution
   source: !input source
+  config_entry_input: !input config_entry
+  config_entry: >
+    {{ config_entry
+        | default(integration_entities(source)
+          | first
+          | default
+          | config_entry_id, true)
+    }}
   include_vat: !input include_vat
-  price_factor: !input price_factor
+  price_factor_input: !input price_factor
+  price_factor: "{{ price_factor_input | default(0.001 if source == 'nordpool' else 1, true) }}"
   add_vat: !input add_vat
   add_fixed: !input add_fixed
   old_prices: "{{ state_attr(entity_id, 'prices') | default([], true) }}"
@@ -240,7 +250,7 @@ actions:
                   }}
                 data:
                   incl_vat: "{{ include_vat }}"
-                  config_entry: !input config_entry
+                  config_entry: "{{ config_entry }}"
                   start: >
                     {% if fetch.yesterday %}
                       {% set delta = -1 %}
@@ -292,31 +302,14 @@ actions:
                   prices: "{{ prices.prices.values() | first | default([], true) }}"
           - conditions: "{{ source == 'nordpool' }}"
             sequence:
-              - if: "{{ price_period == 'source' }}"
-                then:
-                  - action: nordpool.get_prices_for_date
-                    data:
-                      config_entry: !input config_entry
-                      date: "{{ now().date() - timedelta(days=1) }}"
-                    response_variable: yesterday
-                  - action: nordpool.get_prices_for_date
-                    data:
-                      config_entry: !input config_entry
-                      date: "{{ now().date() }}"
-                    response_variable: today
-                  - action: nordpool.get_prices_for_date
-                    data:
-                      config_entry: !input config_entry
-                      date: "{{ now().date() + timedelta(days=1) }}"
-                    response_variable: tomorrow
-                else:
+              - sequence:
                   - if: "{{ fetch.yesterday }}"
                     then:
                       - action: nordpool.get_price_indices_for_date
                         data:
-                          config_entry: !input config_entry
+                          config_entry: "{{ config_entry}}"
                           date: "{{ now().date() - timedelta(days=1) }}"
-                          resolution: "{{ time_period | int }}"
+                          resolution: "{{ resolution }}"
                         response_variable: yesterday
                       - variables:
                           yesterday: "{{ yesterday.values() | first }}"
@@ -324,9 +317,9 @@ actions:
                     then:
                       - action: nordpool.get_price_indices_for_date
                         data:
-                          config_entry: !input config_entry
+                          config_entry: "{{ config_entry}}"
                           date: "{{ now().date() }}"
-                          resolution: "{{ time_period | int }}"
+                          resolution: "{{ resolution }}"
                         response_variable: today
                       - variables:
                           today: "{{ today.values() | first }}"
@@ -334,51 +327,23 @@ actions:
                     then:
                       - action: nordpool.get_price_indices_for_date
                         data:
-                          config_entry: !input config_entry
+                          config_entry: "{{ config_entry}}"
                           date: "{{ now().date() + timedelta(days=1) }}"
-                          resolution: "{{ time_period | int }}"
+                          resolution: "{{ resolution }}"
                         response_variable: tomorrow
                       - variables:
                           tomorrow: "{{ tomorrow.values() | first }}"
               - variables:
                   prices: "{{ [yesterday, today, tomorrow] | select('defined') | flatten(1) }}"
-      - alias: Update result to generic format and apply price_period if needed
+      - alias: Update result to generic format and apply VAT and fixed price if needed
         variables:
           new_prices: >
             {% set time_key = mapping[source].time_key %}
             {% set value_key = mapping[source].value_key %}
-            {% set ns = namespace(prices=[], processed=false) %}
-            {% for price in prices %}
-              {% set ns.processed = false %}
-              {% if price_period != 'source' %}
-                {% if not loop.last %}
-                  {% set source_period = (loop.nextitem[time_key] | as_datetime - price[time_key] | as_datetime).seconds // 60 %}
-                {% else %}
-                  {% set source_period = (price[time_key] | as_datetime - loop.previtem[time_key] | as_datetime).seconds // 60 %}
-                {% endif %}
-                {%- if price_period != 'source' and source_period > price_period | int %}
-                  {% set factor = source_period // price_period %}
-                  {% set t = price[time_key] | as_datetime | as_local %}
-                  {% set p = price[value_key] * price_factor * (1 + add_vat / 100) + add_fixed %}
-                  {% for i in range(factor) %}
-                      {% set ns.prices = ns.prices + [dict(start=(t+timedelta(hours=(1/factor)*loop.index)).isoformat(), price=p | round(5))] %}
-                  {% endfor %}
-                {%- elif price_period != 'source' and source_period < price_period | int %}
-                  {% set factor = price_period // source_period %}
-                  {% if loop.index % factor == 0 %}
-                    {% set t = (price[time_key] | as_datetime | as_local).isoformat() %}
-                    {% set avg = prices[loop.index:loop.index+factor] | map(attribute=value_key) | list | average %}
-                    {% set p = (avg * price_factor * (1 + add_vat / 100) + add_fixed) | round(5) %}
-                    {% set ns.prices = ns.prices + [dict(start=t, price=p | round(5))] %}
-                  {% endif %}
-                  {% set ns.processed = true %}
-                {% endif %}
-              {% endif %}
-              {% if not ns.processed %}
-                {% set t = (price[time_key] | as_datetime | as_local).isoformat() %}
-                {% set p = price[value_key] * price_factor * (1 + add_vat / 100) + add_fixed %}
-                {% set ns.prices = ns.prices + [dict(start=t, price=p | round(5))] %}
-              {%- endif %}
+            {% set ns = namespace(prices=[]) %}
+              {% set t = (price[time_key] | as_datetime | as_local).isoformat() %}
+              {% set p = price[value_key] * price_factor * (1 + add_vat / 100) + add_fixed %}
+              {% set ns.prices = ns.prices + [dict(start=t, price=p | round(5))] %}
             {% endfor %}
             {{ ns.prices }}
   - alias: "Set variables to be used in sensor"
