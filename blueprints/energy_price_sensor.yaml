@@ -87,6 +87,14 @@ blueprint:
   source_url: https://github.com/TheFes/HA-configuration/blob/main/blueprints/template/TheFes/nordpool_hourly.yaml
   domain: template
   input:
+    entity_id:
+      name: Entity id for template sensor
+      description: The entity_id which will be used for the template sensor created using this blueprint
+      selector:
+        text:
+          multiple: false
+          multiline: false
+      default: sensor.cheapest_energy_hour_prices
     source:
       name: Source integration
       description: The source integration used to provide the data
@@ -102,14 +110,6 @@ blueprint:
             - label: Tibber
               value: tibber
       default: null
-    entity_id:
-      name: Entity id for template sensor
-      description: The entity_id which will be used for the template sensor created using this blueprint
-      selector:
-        text:
-          multiple: false
-          multiline: false
-      default: sensor.cheapest_energy_hour_prices
     config_entry:
       name: The config entry id for the integration.
       description: This is not required for Tibber, but for all other source integrations it is a required field
