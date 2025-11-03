@@ -20,7 +20,7 @@ To use the blueprint, first import it using the button below:
 [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTheFes%2Fcheapest-energy-hours%2Ftree%2Fmain%2Fblueprints%2Fenergy_price_sensor.yaml)
 
 Note that after importing the blueprint it will **<ins>not</ins>** be shown in Settings > Automations & Scenes > Blueprints. Only automation and script blueprints will be shown there. 
-There is currently no GUI support for template blueprints, so you need to use it with YAML configuration. For the supported integrations you will find examples below.
+There is currently no GUI support for template blueprints, so you need to use it with YAML configuration. For the supported integrations you will find examples below. After adding the YAML for the template sensor, you need to reload templates from [Developer tools > YAML](<https://my.home-assistant.io/redirect/server_controls/>). The prices will appear after maximum 15 minutes, or if you manually fire the `update_ceh_prices`  event in [Developer tools > Events](<https://my.home-assistant.io/redirect/developer_events/>)
 
 When using the template sensor created by this blueprint there is no need to provide settings for `attr_today`, `attr_tomorrow`, `attr_all`, `time_key` or `value_key` for the cheapest energy hours macro. The default settings will already be correct.
 
