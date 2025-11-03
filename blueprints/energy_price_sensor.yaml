@@ -43,7 +43,7 @@ blueprint:
     excludes for the recorder integration, see the [documentation](<https://www.home-assistant.io/integrations/recorder/>). 
 
 
-    ## Blueprting inputs
+    ## Blueprint inputs
 
 
     The following inputs can be used in this blueprint:
