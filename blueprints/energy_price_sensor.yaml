@@ -6,9 +6,8 @@ blueprint:
     <img width="512" height="256" alt="dark_logo" src="https://github.com/user-attachments/assets/afee8c82-0367-42b0-ab3a-91e86079b48d" />
 
 
-    This blueprint creates a sensor with a `prices` attribute which contains the prices
-    from yesterday, today and tomorrow (if available). These prices can be used in the
-    Cheapest Energy Hours macro.
+    This blueprint creates a sensor with a `prices` attribute which contains the prices from yesterday, today and tomorrow (if available). 
+    These prices can be used in the Cheapest Energy Hours macro.
 
 
     The blueprint can be used with the following core Home Assistant integrations
@@ -23,6 +22,30 @@ blueprint:
     - [Tibber](https://www.home-assistant.io/integrations/tibber/)
 
 
+    Note that after importing the blueprint it will **<ins>not</ins>** be shown in Settings > Automations & Scenes > Blueprints. 
+    Only automation and script blueprints will be shown there. 
+
+
+    There is currently no GUI support for template blueprints, so you need to use them with YAML configuration. For the supported 
+    integrations you will find examples below. After adding the YAML for the template sensor, you need to reload templates from 
+    [Developer tools > YAML](<https://my.home-assistant.io/redirect/server_controls/>). The prices will appear after maximum 15 minutes, 
+    or if you manually fire the `update_ceh_prices`  event in [Developer tools > Events](<https://my.home-assistant.io/redirect/developer_events/>)
+
+
+    When using the template sensor created by this blueprint there is no need to provide settings for `attr_today`, `attr_tomorrow`, `attr_all`,
+    `time_key` or `value_key` for the cheapest energy hours macro. The default settings will already be correct.
+
+
+    **<ins>Note:</ins>** This blueprint will create a template entity with a exceptionally large attribute with all the prices, especially when 15 
+    minute prices are used. It will store 288 items (3 days with 96 items per day) with the date and time and the price for all those items. It is 
+    advisable to exclude this sensor from being included in the database. You can do that using the [recorder integration](<https://www.home-assistant.io/integrations/recorder/>).
+    This can only be done using YAML, the below example excludes the template sensor from your database. For more information how to use includes and
+    excludes for the recorder integration, see the [documentation](<https://www.home-assistant.io/integrations/recorder/>). 
+
+
+    ## Blueprting inputs
+
+
     The following inputs can be used in this blueprint:
 
 
@@ -30,7 +53,7 @@ blueprint:
     
     The entity_id which will be used for the template sensor. It is important that the entity_id matches the actual entity_id
     of the template sensor. So if you change it in the GUI, make sure to change it in the settings for the template sensor as
-    well
+    well.
 
     ***
     
@@ -46,7 +69,7 @@ blueprint:
     
     The config entry id for the integration to be used by the blueprint. The blueprint will try to find this based on the source, but
     as it takes the first config entry id it can find, it can be advised to enter it yourself if you have multiple instances of the same
-    integraton. To find it the easiest method is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) 
+    integration. To find it the easiest method is to go to [Developer tools > Action](<https://my.home-assistant.io/redirect/developer_services/>) 
     and use one of the actions provided by the integration in GUI mode, select the config entry and then switch to YAML mode.
 
     ***
@@ -61,7 +84,7 @@ blueprint:
     
     ### **<ins>add_vat</ins>** <span style="color:grey">_float (default: 0)_</span>
     
-    VAT perecentage which will be added to the prices
+    VAT percentage which will be added to the prices
 
     ***
 
@@ -78,8 +101,10 @@ blueprint:
     For most integrations this is set to 1 by default, but for Nordpool this is set to 0.001 as the prices
     provided by the Nordpool integration are for MWh instead of kWh.
 
-    ***
- 
+
+    ## More info
+
+
     For more details on how to use the blueprint and examples for each integration,
     see the [documentation](<https://github.com/TheFes/cheapest-energy-hours/blob/main/documentation/blueprints/energy_price_sensor.md>).
     '
