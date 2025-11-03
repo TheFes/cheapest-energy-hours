@@ -22,6 +22,8 @@ To use the blueprint, first import it using the button below:
 Note that after importing the blueprint it will **<ins>not</ins>** be shown in Settings > Automations & Scenes > Blueprints. Only automation and script blueprints will be shown there. 
 There is currently no GUI support for template blueprints, so you need to use it with YAML configuration. For the supported integrations you will find examples below.
 
+When using the template sensor created by this blueprint there is no need to provide settings for `attr_today`, `attr_tomorrow`, `attr_all`, `time_key` or `value_key` for the cheapest energy hours macro. The default settings will already be correct.
+
 **<ins>Note:</ins>** This blueprint will create a template entity with a exceptionally large attribute with all the prices, especially when 15 minute prices are used. It will store 288 items (3 days with 96 items per day) with the date and time and the price for all those items. It is advisable to exclude this sensor from being included in the database. You can do that using the [recorder integration](<https://www.home-assistant.io/integrations/recorder/>). This can only be done using YAML, the below example excludes the template sensor from your database. For more information how to use includes and ex
 ```yaml
 recorder:
