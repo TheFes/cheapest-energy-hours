@@ -103,7 +103,7 @@ Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/int
 
 I've createad a blueprint to create a template sensor which stores the prices in an attribute. The template sensor will store the prices for yesterday, today and tomorrow (when available). It will trigger every 15 minutes to ensure that the state is updated and reflects the current price.
 
-More information on how to use this blueprint can be found [here](#blueprints/)
+More information on how to use this blueprint can be found [here](./blueprints/energy_price_sensor.md)
 
 ### CREATE A TEMPLATE SENSOR TO CONVERT UNSOPPORTED DATA FORMATS
 

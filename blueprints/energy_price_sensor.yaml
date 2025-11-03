@@ -143,7 +143,8 @@ blueprint:
           mode: "box"
       default: 0
     add_fixed:
-      name:
+      name: Fixed value to add to the price
+      description: >
         Fixed value to be added to prices. Can be used to e.g. add a fixed price for your energy provided in
         case you use Nordpool as the source. This fixed value should already include VAT if applicable.
       selector:
