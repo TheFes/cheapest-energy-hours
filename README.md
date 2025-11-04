@@ -3,7 +3,7 @@
 [![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
 [![Paypal](https://img.shields.io/badge/PayPal-00457C?&color=00457c&logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/thefes)
 
-<img width="512" height="256" alt="dark_logo" src="https://github.com/user-attachments/assets/afee8c82-0367-42b0-ab3a-91e86079b48d" />
+<img width="512" height="256" alt="dark_logo" src="/logo/dark_logo.png" />
 
 A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer (and much more)
 

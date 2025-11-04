@@ -1,6 +1,6 @@
 # Energy Price Sensor Blueprint
 
-<img width="512" height="256" alt="dark_logo" src="https://github.com/user-attachments/assets/afee8c82-0367-42b0-ab3a-91e86079b48d" />
+<img width="512" height="256" alt="dark_logo" src="/logo/dark_logo.png" />
 
 Some integrations don't provide the forecast by default in an attribute, this is the case for all modern core integrations, as they are not allowed to store forecasts in attributes. However these integrations provide an action to retrieve the prices. 
 
