@@ -14,8 +14,10 @@ script:
         required: true
         selector:
           entity:
-            domain: sensor
-            device_class: energy
+            multiple: false
+            filter:
+              - domain: sensor
+                device_class: energy
       description:
         description: "Description for the plot"
         name: Description

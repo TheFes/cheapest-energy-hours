@@ -12,8 +12,9 @@ plot_energy_usage:
       required: true
       selector:
         entity:
-          domain: sensor
-          device_class: energy
+          filter:
+            - domain: sensor
+              device_class: energy
     description:
       description: "Description for the plot"
       name: Description
