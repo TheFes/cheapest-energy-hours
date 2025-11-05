@@ -1,4 +1,19 @@
-{%- set _version = 'v7.0.4'-%}
+{%- set _version = 'v7.1.0'-%}
+
+{#- set settings for source sensors -#}
+{#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
+{%- set _source_settings = {
+        'default': ['raw_today', 'raw_tomorrow', 'prices', 'start', 'value'],
+        'nordpool': ['raw_today', 'raw_tomorrow', none, 'start', 'value'],
+        'amber-electric': [none, none, 'forecasts', 'start_time', 'per_kwh'],
+        'entso-e': ['prices_today', 'prices_tomorrow', none, 'time', 'price'],
+        'frank-energie': [none, none, 'prices', 'from', 'price'],
+        'ge-spot': ['today_interval_prices', 'tomorrow_interval_prices', none, 'time', 'value'],
+        'ge-spot-hourly': ['today_hourly_prices', 'tomorrow_hourly_prices', none, 'time', 'value'],
+        'octopus-energy': [none, none, 'rates', 'start', 'value_incl_vat'],
+        'zonneplan': [none, none, 'forecast', 'start', 'electricity_price']
+    }
+-%}
 
 {#- sub-macro to format datetimes to selected time_format -#}
 {%- macro _format_date_macro(datetime, time_format, returns) -%}
@@ -35,9 +50,9 @@
 {%- endmacro-%}
 
 {#- sub macro to find the right attributes -#}
-{%- macro _find_attr(sensor, type) -%}
-    {%- set td = now().date() | string -%}
-    {%- set tm = (now() + timedelta(days=1)).date() | string -%}
+{%- macro _find_attr(sensor, type, time) -%}
+    {%- set td = time.date() | string -%}
+    {%- set tm = (time + timedelta(days=1)).date() | string -%}
     {%- if sensor | has_value -%}
         {%- for attr in states[sensor].attributes.items()
                         | rejectattr('1', 'string')
@@ -102,51 +117,45 @@
 {%- endmacro -%}
 
 {# macro to rebuild data if needed #}
-{%- macro _rebuild_data_macro(data, returns, time_key='start', value_key='value', price_factor=1, dph=1, type='format') -%}
+{%- macro _rebuild_data_macro(data, time_key='start', value_key='value', price_factor=1, use_hourly_avg=false, time=none, force_dph=0, returns=none) -%}
     {%- set rebuild = namespace(data=[]) -%}
-    {%- if type == 'format' -%}
+    {%- if not force_dph -%}
         {%- for item in data -%}
-            {%- set time = item[time_key] -%}
-            {%- set time = as_local(as_datetime(time)) if time is string else time -%}
-            {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor | float(1)}] -%}
+            {%- set time = as_datetime(item[time_key]).astimezone(utcnow().tzinfo) -%}
+            {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor}] -%}
         {%- endfor -%}
         {%- set output = rebuild.data | sort(attribute=time_key) -%}
-    {%- elif type == 'dph' -%}
-        {%- for item in data -%}
+        {# check if all days use same datapoints per hour #}
+        {%- set dph_ystrd = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() - timedelta(days=1)) | string) | list | count / 24) | round | int -%}
+        {%- set dph_today = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', time.date() | string) | list | count / 24) | round | int -%}
+        {%- set dph_tmrw = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() + timedelta(days=1)) | string) | list  | count / 24) | round | int -%}
+        {%- set dph_list = [dph_ystrd, dph_today, dph_tmrw, force_dph] | select | list -%}
+        {%- endif -%}
+    {%- set dph = force_dph or use_hourly_avg | int or dph_list | max -%}
+    {# rebuild data if needed #}
+    {%- if force_dph or dph_list | reject('eq', dph) | list | count > 0 -%}
+        {%- set rebuild.data = [] -%}
+        {%- for item in output | default(data) -%}
             {%- if not loop.last -%}
-                {%- set dp = (3600 / (data[loop.index0+1][time_key] | as_datetime - data[loop.index0][time_key] | as_datetime).seconds) | int -%}
+                {%- set item_dph = (3600 / (loop.nextitem[time_key] - item[time_key]).seconds) | int -%}
             {%- else -%}
-                {%- set dp = (3600 / (data[loop.index0][time_key] | as_datetime - data[loop.index0-1][time_key] | as_datetime).seconds) | int -%}
+                {%- set item_dph = (3600 / (item[time_key] -loop.previtem[time_key]).seconds) | int -%}
             {%- endif -%}
-            {%- if dp != dph -%}
-                {%- for i in range((dph/dp)|int) -%}
-                    {%- set rebuild.data = rebuild.data + [{time_key:item[time_key] + timedelta(hours=i*(dp/dph)), value_key:item[value_key]}] -%}
+            {%- if item_dph < dph -%}
+                {%- for i in range((dph/item_dph)|int) -%}
+                    {%- set time = item[time_key] + timedelta(hours=i*(1/dph)) -%}
+                    {%- set rebuild.data = rebuild.data + [{time_key:time, value_key:item[value_key]}] -%}
                 {%- endfor -%}
-            {%- else -%}
+            {%- elif item_dph > dph and loop.index0 % item_dph == 0 -%}
+                {% set avg = data[loop.index0:loop.index0+item_dph] | map(attribute=value_key) | average | round(5) %}
+                {% set rebuild.data= rebuild.data + [{time_key:item[time_key], value_key:avg}] %}
+            {%- elif item_dph == dph -%}
                 {%- set rebuild.data = rebuild.data + [item] -%}
             {%- endif -%}
         {%- endfor -%}
         {%- set output = rebuild.data | sort(attribute=time_key) -%}
-    {%- elif type == 'hourly_avg' -%}
-        {%- set ts = namespace(data=[]) -%}
-        {%- for item in data -%}
-            {% set ts.data = ts.data + [dict(ts=item[time_key] | as_timestamp, price=item[value_key])] -%}
-        {%- endfor -%}
-        {%- set ts_data = ts.data | sort(attribute='ts') | list -%}
-        {% for item in ts_data -%}
-            {%- if not loop.last -%}
-                {%- set dp = (3600 / (loop.nextitem.ts - item.ts)) | int -%}
-            {%- else -%}
-                {%- set dp = (3600 / (item.ts - loop.previtem.ts)) | int -%}
-            {%- endif -%}
-            {% if loop.index0 % dp == 0 %}
-            {% set avg = ts_data[loop.index0:loop.index0+dp] | map(attribute='price') | average | round(5) %}
-            {% set rebuild.data= rebuild.data + [{time_key:item.ts | as_datetime | as_local, value_key:avg}] %}
-            {% endif %}
-        {% endfor %}
-        {%- set output = rebuild.data | sort(attribute=time_key) -%}
     {%- endif -%}
-    {%- do returns(output) -%}
+    {%- do returns([output, dph]) -%}
 {%- endmacro -%}
 
 {%- set _rebuild_data = _rebuild_data_macro | as_function -%}
@@ -158,11 +167,11 @@
                                     hours,
                                     start='00:00',
                                     end='00:00',
-                                    attr_today='raw_today',
-                                    attr_tomorrow='raw_tomorrow',
-                                    attr_all='prices',
-                                    time_key='start',
-                                    value_key='value',
+                                    attr_today=none,
+                                    attr_tomorrow=none,
+                                    attr_all=none,
+                                    time_key=none,
+                                    value_key=none,
                                     datetime_in_data=true,
                                     data_minutes=60,
                                     mode='start',
@@ -185,6 +194,7 @@
                                     debug=false,
                                     price_data=none,
                                     use_hourly_avg=false,
+                                    source_settings='default',
                                     returns=none
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now', 'extreme_now', 'estimated_costs'] -%}
@@ -197,11 +207,11 @@
                                         hours=none,
                                         start='00:00',
                                         end='00:00',
-                                        attr_today='raw_today',
-                                        attr_tomorrow='raw_tomorrow',
-                                        attr_all='prices',
-                                        time_key='start',
-                                        value_key='value',
+                                        attr_today=none,
+                                        attr_tomorrow=none,
+                                        attr_all=none,
+                                        time_key=none,
+                                        value_key=none,
                                         datetime_in_data=true,
                                         data_minutes=60,
                                         mode='start',
@@ -221,7 +231,8 @@
                                         plot_sensor='sensor.energy_plots',
                                         plot_attr='energy_plots',
                                         split=false,
-                                        use_hourly_avg=false
+                                        use_hourly_avg=false,
+                                        source_settings='nordpool'
                                     )
             -%}
             {%- set user_input = dict(
@@ -255,32 +266,53 @@
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
                                         split=split,
-                                        use_hourly_avg=use_hourly_avg
+                                        use_hourly_avg=use_hourly_avg,
+                                        source_settings=source_settings
                                     )
             -%}
             {%- set non_default = dict(user_input.items() | reject('in', defaults.items())) -%}
         {%- endif -%}
+        {%- set _now = now().replace(microsecond=0) -%}
+    {#- set source settings based on source_settings parameter -#}
+        {%- if source_settings in _source_settings -%}
+            {%- set attr_today, attr_tomorrow, attr_all, time_key, value_key = 
+                [
+                    attr_today or _source_settings[source_settings][0],
+                    attr_tomorrow or _source_settings[source_settings][1],
+                    attr_all or _source_settings[source_settings][2],
+                    time_key or _source_settings[source_settings][3],
+                    value_key or _source_settings[source_settings][4]
+                ]
+            -%}
+        {%- endif -%}
     {#- find sensor if needed -#}
         {%- if price_data is none and (sensor is not defined or not sensor | has_value) -%}
             {%- set sensor = _find_sensor(attr_today, attr_tomorrow) -%}
+            {%- set find_sensor_used = true -%}
         {%- endif -%}
         {%- set day = timedelta(days=1) -%}
         {%- if price_data is none and sensor | has_value -%}
         {#- Get data out of the selected entity, find right attributes if needed -#}
-            {%- set today = state_attr(sensor, attr_today) | default([], true)-%}
-            {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
-            {%- set all = state_attr(sensor, attr_all) | default([], true) -%}
+            {%- set today = state_attr(sensor, attr_today) | default([], true) if attr_today is not none else [] -%}
+            {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) if attr_tomorrow is not none else [] -%}
+            {%- set all = state_attr(sensor, attr_all) | default([], true) if attr_all is not none else [] -%}
         {# check data if data_type is set to datetimes and values #}
             {%- if datetime_in_data | bool(true) -%}
             {# Check if there is an all attribute in the sensor #}
                 {%- set all_check = all is list and all | count > 0 and all[0] is mapping -%}
-                {%- set today_check = not include_today or today is list and today | count > 0 and today[0] is mapping -%}
-                {%- set tomorrow_check = not include_tomorrow or tomorrow is list and tomorrow | count > 0 and tomorrow[0] is mapping -%}
+                {%- set today_check = not include_today
+                        or (today is list and today | count > 0 and today[0] is mapping) -%}
+                {%- set tomorrow_check = not include_tomorrow
+                        or (tomorrow is list and tomorrow | count > 0 and tomorrow[0] is mapping)
+                        or _now.time() < today_at('14:00').time() -%}
             {# Check if right attributes are already provided #}
                 {%- if all_check or (today_check and tomorrow_check) -%}
                     {%- set data = all or today + tomorrow -%}
                 {%- else -%}
-                    {%- set attr_all = attr_all if all_check else _find_attr(sensor, 'all') | default('attr_all_not_found', true) -%}
+                    {%- if not all_check -%}
+                        {%- set attr_all = _find_attr(sensor, 'all', _now) | default('attr_all_not_found', true) -%}
+                        {%- set find_attr_all_used = true -%}
+                    {%- endif -%}
                     {%- set all = all if all_check else state_attr(sensor, attr_all) | default([], true) -%}
                     {%- set all_check = all_check or (all is list and all and all[0] is mapping) -%}
                 {# use all atrribute if available, and otherwise use tomorrow and today #}
@@ -289,8 +321,10 @@
                     {%- else -%}
                     {#- Check if data is available and as expected -#}
                     {#- try to find correct attributes if no valid data was found -#}
-                        {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today')) | default('attr_today_not_found', true) -%}
-                        {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow')) | default('attr_tomorrow_not_found', true)  -%}
+                        {%- set attr_today = (attr_today if today_check else _find_attr(sensor, 'today', _now)) | default('attr_today_not_found', true) -%}
+                        {%- set attr_tomorrow = (attr_tomorrow if tomorrow_check else _find_attr(sensor, 'tomorrow', _now)) | default('attr_tomorrow_not_found', true) -%}
+                        {%- set find_attr_today_used = true -%}
+                        {%- set find_attr_tomorrow_used = true -%}
                     {#- set set dataset with all attributes -#}
                         {%- set today = state_attr(sensor, attr_today) | default([], true) -%}
                         {%- set tomorrow = state_attr(sensor, attr_tomorrow) | default([], true) -%}
@@ -314,12 +348,13 @@
                                     {%- set ns.tk_list = ns.tk_list + [k] -%}
                                 {%- endif -%}
                             {%- endfor -%}
-                            {%- set dates_check = [(now() - day).date() | string, now().date() | string, (now() + day).date() | string] | join('|') -%}
+                            {%- set dates_check = [(_now - day).date() | string, _now.date() | string, (_now + day).date() | string] | join('|') -%}
                             {%- set tk_list = ns.tk_list -%}
                         {%- endif -%}
                         {%- if tk_list | count > 0 -%}
                             {%- set time_key = tk_list | first -%}
                         {%- endif -%}
+                        {%- set find_time_key_used = true -%}
                     {%- endif -%}
                 {#- value_key -#}
                     {%- if data | count > 0 and data[0] is mapping and value_key not in data[0] -%}
@@ -330,6 +365,7 @@
                                     | list
                         -%}
                         {%- set value_key = vk_list | first if vk_list else value_key -%}
+                        {%- set find_value_key_used = true -%}
                     {%- endif -%}
             {%- else -%}
                 {%- set data = today + tomorrow + all -%}
@@ -358,32 +394,9 @@
         {#- check if sensor has valid data -#}
         {%- if data is defined -%}
             {%- if data | count > 0 and time_key in data[0] and value_key in data[0] -%}
-            {#- Rebuild data from sensor to generic format -#}
-                {%- if data[0][time_key] is not datetime or price_factor != 1 -%}
-                    {%- set data = _rebuild_data(data, type='format', time_key=time_key, value_key=value_key, price_factor=price_factor) -%}
-                {%- endif -%}
-                {# rebuild to hourly data if requested#}
-                {%- if use_hourly_avg -%}
-                    {%- set data = _rebuild_data(data, type='hourly_avg', time_key=time_key, value_key=value_key) -%}
-                    {%- set dph = 1 -%}
-                {%- else -%}
-                {# check if all datapoints use the same time period #}
-                    {%- set dpns = namespace(list=[]) -%}
-                    {%- if data | count > 1 -%}
-                        {%- for item in data | map(attribute=time_key) | map('as_timestamp') | sort -%}
-                            {%- if not loop.last -%}
-                                {%- set sec = (3600 / (loop.nextitem - item)) | int -%}
-                                {%- set dpns.list = dpns.list + [sec]-%}
-                            {%- endif -%}
-                        {%- endfor -%}
-                        {%- set dpdur_list = dpns.list | unique | list -%}
-                    {%- endif -%}
-                    {%- set dph = dpdur_list | max | default(1) -%}
-                {#- Rebuild data in case of mixed datapoints per hour -#}
-                    {%- if dpdur_list | count > 1 -%}
-                        {%- set data = _rebuild_data(data, type='dph', time_key=time_key, value_key=value_key, dph=dph) -%}
-                    {%- endif -%}       
-                {%- endif -%}
+            {#- Rebuild time values to utc and apply price factor if needed 
+                make sure dapoints per hour match on all days or calculate hourly average -#}
+                {% set data, dph = _rebuild_data(data, time_key, value_key, price_factor, use_hourly_avg, _now) %}
             {#- set weight points based on energy plot sensor -#}
                 {%-if program is not none-%}
                     {%- set plot_data = state_attr(plot_sensor, plot_attr) | default({}, true) -%}
@@ -404,7 +417,6 @@
                     {%- set h = hours | default(1) | float(1) -%}
                 {%- endif -%}
             {#- convert start and end input to local datetime -#}
-                {%- set n = now().replace(microsecond=0) -%}
                 {%- set before = true if mode == 'is_now' else false -%}
                 {%- set start_is_dt = start | as_datetime is not none -%}
                 {%- set end_is_dt = end | as_datetime is not none -%}
@@ -418,7 +430,7 @@
                         {%- set start = start if include_today else start + day -%}
                     {%- endif -%}
                     {%- if look_ahead -%}
-                        {%- set start = [n, start] | max -%}
+                        {%- set start = [_now, start] | max -%}
                     {%- endif -%}
                     {%- set seconds = start.minute * 60 + start.second -%}
                     {%- set remain = _div_calc(seconds, h, dph, before=before, mode='remain') | int -%}
@@ -434,9 +446,9 @@
                         {%- set end = end + day if include_tomorrow else end -%}
                     {%- endif -%}
                     {%- if start > end -%} {#- START = 20:00, END = 8:00 -#}
-                        {%- if end > n and not start_is_dt -%} {#- NOW() = 04:00, END = 8:00 -#}
+                        {%- if end > _now and not start_is_dt -%} {#- NOW() = 04:00, END = 8:00 -#}
                             {%- set start = start - day -%} {#- Set start yesterday -#}
-                        {%- elif end < n and not end_is_dt -%} {#- NOW() = 12:00, END = 8:00 -#}
+                        {%- elif end < _now and not end_is_dt -%} {#- NOW() = 12:00, END = 8:00 -#}
                             {%- set end = end + day -%} {#- Set end tomorrow -#}
                         {%- endif -%}
                     {%- endif -%} {#- End midnight crossing check -#}
@@ -476,7 +488,7 @@
                 {#- set hours if in case hours='all' -#}
                     {%- set end_data = (data | last)[time_key] + timedelta(hours=1/dph) -%}
                     {%- set end_data = [end, end_data] | min -%}
-                    {%- set h_all = (end_data.astimezone(utcnow().tzinfo)-start.astimezone(utcnow().tzinfo)).total_seconds() / 3600 -%}
+                    {%- set h_all = (end_data - start).total_seconds() / 3600 -%}
                     {%- set h = h_all if hours is defined and hours == 'all' else h | default(hours | default(1) | float(1)) -%}
             {#- set weight values based on number of hours (either add zeros, or remove unneeded part) -#}
                 {%- if w is not none -%}
@@ -588,14 +600,7 @@
             {#- rebuild data again to match no_weight_points -#}
                 {# split hours if needed #}
                     {%- if dp_minutes > wp_minutes -%}
-                        {%- set rebuild = namespace(data=[]) -%}
-                        {%- for v in (data * int(dp_minutes/wp_minutes)) | sort(attribute=time_key) -%}
-                            {%- set t = v[time_key] -%}
-                            {%- set t = t + timedelta(minutes=(wp_minutes*(loop.index0 % int(dp_minutes/wp_minutes)))) -%}
-                            {%- set rebuild.data = rebuild.data + [ {time_key: t, value_key: v[value_key]} ] -%}
-                        {%- endfor -%}
-                        {%- set data = rebuild.data -%}
-                        {%- set dph = 3600 / (data[1][time_key] - data[0][time_key]).seconds -%}
+                        {% set data, dph = _rebuild_data(data, time_key, value_key, price_factor, use_hourly_avg, _now, no_weight_points) %}
                         {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
                         {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
                 {# add weights for additional datapoints if needed #}
@@ -671,7 +676,7 @@
                             {%- for i in range(dp) -%}
                                 {%- set dt = values[loop.index0][time_key] -%}
                                 {%- if i > 0 and values[loop.index0 - 1][time_key] != dt - timedelta(hours=1/dph) -%}
-                                    {%- set is_now = split.start <= now() < split.start + timedelta(hours=split.datapoints/dph) -%}
+                                    {%- set is_now = split.start <= _now < split.start + timedelta(hours=split.datapoints/dph) -%}
                                     {%- set prices = split.prices -%}
                                     {%- set split.split = split.split + [
                                                                             dict(
@@ -688,7 +693,7 @@
                                     {%- set price = values[loop.index0][value_key] if pt == 0 else values[loop.index0].original_value %}
                                     {%- set split.prices = [price | round(pr)] -%}
                                     {%- if loop.last -%}
-                                        {%- set is_now = split.start <= now() < dt + timedelta(hours=1/dph) -%}
+                                        {%- set is_now = split.start <= _now < dt + timedelta(hours=1/dph) -%}
                                         {%- set prices = split.prices -%}
                                         {%- set split.split = split.split + [
                                                                                 dict(
@@ -707,7 +712,7 @@
                                     {%- set price = values[loop.index0][value_key] if pt == 0 else values[loop.index0].original_value %}
                                     {%- set split.prices = split.prices + [price | round(pr)] -%}
                                     {%- if loop.last -%}
-                                        {%- set is_now = split.start <= now() < dt + timedelta(hours=1/dph) -%}
+                                        {%- set is_now = split.start <= _now < dt + timedelta(hours=1/dph) -%}
                                         {%- set prices = split.prices -%}
                                         {%- set split.split = split.split + [
                                                                                 dict(
@@ -790,7 +795,7 @@
                                     {%- set output.time = values[i:i+last_values] | map(attribute=time_key) | list -%}
                                     {%- set output.time_min = _format_date(output.time[index_min], time_format | default(none)) -%}
                                     {%- set output.time_max = _format_date(output.time[index_max], time_format | default(none)) -%}
-                                    {%- set output.is_now = values[i][time_key] < now() < values[i][time_key] + timedelta(hours=h) -%}
+                                    {%- set output.is_now = values[i][time_key] < _now < values[i][time_key] + timedelta(hours=h) -%}
                                 {%- endif -%}
                             {%- endfor -%}
                         {#- determine estimated_costs if kwh is provided -#}
@@ -817,7 +822,7 @@
                                 if lowest
                                 else values | map(attribute=value_key) | max - pt
                             -%}
-                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', now()) | map(attribute=value_key) | list | first | default(none) -%}
+                            {%- set current_price = data | sort(attribute=time_key, reverse=true) | selectattr(time_key, '<=', _now) | map(attribute=value_key) | list | first | default(none) -%}
                             {%- set output.extreme_now = current_price is not none and current_price <= compare_price if lowest else current_price >= compare_price -%}
                         {#- output date based on the selected mode -#}
                             {%- if mode == 'all' -%}
@@ -851,6 +856,15 @@
                     {%- set macro_output = value_on_error if use_voe and not debug else error_msg -%}
                 {%- endif -%}
                 {%- if debug -%}
+                    {%- set find_used = dict(
+                                            find_sensor_used=find_sensor_used | default(false),
+                                            find_attr_all_used=find_attr_all_used | default(false),
+                                            find_attr_today_used=find_attr_today_used | default(false),
+                                            find_attr_tomorrow_used=find_attr_tomorrow_used | default(false),
+                                            find_time_key_used=find_time_key_used | default(false),
+                                            find_value_key_used=find_value_key_used | default(false)
+                                        )
+                    -%}
                     {%- set dict_add = dict(
                                             values_count=values|count,
                                             datapoints_source=datapoints_source,
@@ -858,7 +872,7 @@
                                             original_prices=output.prices_list,
                                             price_count=price_count | default(0),
                                             kwh_list=kwh_list | default([])
-                                        ) if not split else dict()
+                                        ) | combine(find_used) if not split else find_used
                     -%}
 
                     {%- set macro_output = dict(
