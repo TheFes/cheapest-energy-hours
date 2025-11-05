@@ -35,6 +35,7 @@ Run the `homeassistant.reload_custom_templates` service call to load the file.
 See the separate [documentation](./documentation/0-how-to.md) on how to use the macro
 
 # Thanks to
+* [@rrozema](https://github.com/rrozema) for testing and providing feedback on the blueprint for the energy price sensor
 * [@basbruss](https://github.com/basbruss) for providing the output mode and a lot of other additions!
 * [@hmmbob](https://github.com/hmmbob) for reviewing the 5.0.0 documentation
 * All users of the macro, especially those who provide valuable feedback in questions, issue reports or feature requests
