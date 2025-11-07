@@ -255,7 +255,7 @@ variables:
     {% else %}
       {% set delta = 1 %}
     {% endif %}
-    {{ today_at('00:00') + timedelta(days=delta).strftime('%Y-%m-%d %H:%M:%S') }}
+    {{ (today_at('00:00') + timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
   fetch_period_end: >
     {% if fetch.tomorrow %}
       {% set delta = 2 %}
@@ -264,7 +264,7 @@ variables:
     {% else %}
       {% set delta = 0 %}
     {% endif %}
-    {{ today_at('00:00') + timedelta(days=delta).strftime('%Y-%m-%d %H:%M:%S') }}
+    {{ (today_at('00:00') + timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
   mapping:
     easyenergy:
       time_key: timestamp
@@ -399,7 +399,7 @@ actions:
         action: persistent_notification.create
         data:
           message: |-
-            time: {{ now().isoformat() }}
+            time: {{ now().replace(microsecond=0).isoformat() }}
             entity_id: {{ entity_id }}
             source: {{ source }}
             config_entry: {{ config_entry }}
@@ -427,8 +427,8 @@ actions:
             fetch_today: {{ fetch.today }}
             fetch_tomorrow: {{ fetch.tomorrow }}
             should_fetch: {{ should_fetch }}
-            fetch_period_start: {% if fetch.yesterday %}{% set delta = -1 %}{% elif fetch.today %}{% set delta = 0 %}{% else %}{% set delta = 1 %}{% endif %}{{ 'NA' if not should_fetch else (today_at('00:00') - timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
-            fetch_period_end: {% if fetch.tomorrow %}{% set delta = 2 %}{% elif fetch.today %}{% set delta = 1 %}{% else %}{% set delta = 0 %}{% endif %}{{ 'NA' if not should_fetch else today_at('00:00') + timedelta(days=delta).strftime('%Y-%m-%d %H:%M:%S') }}
+            fetch_period_start: {{ fetch_period_start }}
+            fetch_period_end: {{ fetch_period_end }}
             fetched_prices_count: {{ prices | default([], true) | count }}
             new_prices_count: {{ new_prices | default([], true) | count }}
             updated_prices_count: {{ updated_prices | count }}
