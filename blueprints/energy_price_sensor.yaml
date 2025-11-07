@@ -247,6 +247,24 @@ variables:
     {{ dict(yesterday=yesterday, today=today, tomorrow=tomorrow) }}
   should_fetch: >
     {{ fetch.yesterday or fetch.today or fetch.tomorrow }}
+  fetch_period_start: >
+    {% if fetch.yesterday %}
+      {% set delta = -1 %}
+    {% elif fetch.today %}
+      {% set delta = 0 %}
+    {% else %}
+      {% set delta = 1 %}
+    {% endif %}
+    {{ today_at('00:00') + timedelta(days=delta).strftime('%Y-%m-%d %H:%M:%S') }}
+  fetch_period_end: >
+    {% if fetch.tomorrow %}
+      {% set delta = 2 %}
+    {% elif fetch.today %}
+      {% set delta = 1 %}
+    {% else %}
+      {% set delta = 0 %}
+    {% endif %}
+    {{ today_at('00:00') + timedelta(days=delta).strftime('%Y-%m-%d %H:%M:%S') }}
   mapping:
     easyenergy:
       time_key: timestamp
@@ -293,24 +311,8 @@ actions:
                 data:
                   incl_vat: false
                   config_entry: "{{ config_entry }}"
-                  start: >
-                    {% if fetch.yesterday %}
-                      {% set delta = -1 %}
-                    {% elif fetch.today %}
-                      {% set delta = 0 %}
-                    {% else %}
-                      {% set delta = 1 %}
-                    {% endif %}
-                    {{ today_at('00:00') + timedelta(days=delta) }}
-                  end: >
-                    {% if fetch.tomorrow %}
-                      {% set delta = 2 %}
-                    {% elif fetch.today %}
-                      {% set delta = 1 %}
-                    {% else %}
-                      {% set delta = 0 %}
-                    {% endif %}
-                    {{ today_at('00:00') + timedelta(days=delta) }}
+                  start: "{{ fetch_period_start }}"
+                  end: "{{ fetch_period_end }}"
                 response_variable: prices
                 continue_on_error: true
               - variables:
@@ -320,24 +322,8 @@ actions:
               - alias: "Fetch the prices for yesterday, today and tomorrow"
                 action: tibber.get_prices
                 data:
-                  start: >
-                    {% if fetch.yesterday %}
-                      {% set delta = -1 %}
-                    {% elif fetch.today %}
-                      {% set delta = 0 %}
-                    {% else %}
-                      {% set delta = 1 %}
-                    {% endif %}
-                    {{ (today_at('00:00') - timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
-                  end: >
-                    {% if fetch.tomorrow %}
-                      {% set delta = 2 %}
-                    {% elif fetch.today %}
-                      {% set delta = 1 %}
-                    {% else %}
-                      {% set delta = 0 %}
-                    {% endif %}
-                    {{ (today_at('00:00') + timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
+                  start: "{{ fetch_period_start }}"
+                  end: "{{ fetch_period_end }}"
                 response_variable: prices
               - variables:
                   prices: "{{ prices.prices.values() | first | default([], true) }}"
@@ -413,6 +399,8 @@ actions:
         action: persistent_notification.create
         data:
           message: |-
+            time: {{ now().isoformat() }}
+            entity_id: {{ entity_id }}
             source: {{ source }}
             config_entry: {{ config_entry }}
             price_factor: {{ price_factor }}
@@ -438,22 +426,9 @@ actions:
             fetch_yesterday: {{ fetch.yesterday }}
             fetch_today: {{ fetch.today }}
             fetch_tomorrow: {{ fetch.tomorrow }}
-            fetch_period_start: {% if fetch.yesterday %}
-                {% set delta = -1 %}
-              {% elif fetch.today %}
-                {% set delta = 0 %}
-              {% else %}
-                {% set delta = 1 %}
-              {% endif %}
-              {{ (today_at('00:00') - timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
-            fetch_period_end: {% if fetch.tomorrow %}
-                {% set delta = 2 %}
-              {% elif fetch.today %}
-                {% set delta = 1 %}
-              {% else %}
-                {% set delta = 0 %}
-              {% endif %}
-              {{ today_at('00:00') + timedelta(days=delta) }}
+            should_fetch: {{ should_fetch }}
+            fetch_period_start: {% if fetch.yesterday %}{% set delta = -1 %}{% elif fetch.today %}{% set delta = 0 %}{% else %}{% set delta = 1 %}{% endif %}{{ 'NA' if not should_fetch else (today_at('00:00') - timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
+            fetch_period_end: {% if fetch.tomorrow %}{% set delta = 2 %}{% elif fetch.today %}{% set delta = 1 %}{% else %}{% set delta = 0 %}{% endif %}{{ 'NA' if not should_fetch else today_at('00:00') + timedelta(days=delta).strftime('%Y-%m-%d %H:%M:%S') }}
             fetched_prices_count: {{ prices | default([], true) | count }}
             new_prices_count: {{ new_prices | default([], true) | count }}
             updated_prices_count: {{ updated_prices | count }}
