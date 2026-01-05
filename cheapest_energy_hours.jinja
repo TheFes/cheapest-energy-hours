@@ -1,4 +1,4 @@
-{%- set _version = 'v7.1.0'-%}
+{%- set _version = 'v7.1.1'-%}
 
 {#- set settings for source sensors -#}
 {#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
@@ -195,6 +195,7 @@
                                     price_data=none,
                                     use_hourly_avg=false,
                                     source_settings='default',
+                                    _now=none,
                                     returns=none
                                 ) -%}
     {%- set modes = ['min', 'max', 'average', 'start', 'end', 'list', 'weighted_average','time_min','time_max', 'split', 'all', 'is_now', 'extreme_now', 'estimated_costs'] -%}
@@ -272,7 +273,7 @@
             -%}
             {%- set non_default = dict(user_input.items() | reject('in', defaults.items())) -%}
         {%- endif -%}
-        {%- set _now = now().replace(microsecond=0) -%}
+        {%- set _now = now().replace(microsecond=0) if _now is none else _now | as_datetime -%}
     {#- set source settings based on source_settings parameter -#}
         {%- if source_settings in _source_settings -%}
             {%- set attr_today, attr_tomorrow, attr_all, time_key, value_key = 
@@ -554,7 +555,7 @@
         {%- set data = data | default([]) -%}
     {#- Return error messages for input -#}
         {%- set h = h | default(hours |default(1, true) | float(1)) | round(3) -%}
-        {%- set start_end = start > end -%}
+        {%- set start_end = start > end if data | count > 0 else true -%}
         {%- set end_start = ((end-start).total_seconds() / 3600) | round(3) if start is datetime and end is datetime else h -%}
         {%- set valid_sensor = sensor | default('unknown') | has_value -%}
         {%- set valid_pt = (price_tolerance is string and price_tolerance[-1] == '%' and price_tolerance[:-1] | is_number) or price_tolerance | is_number%}
@@ -795,7 +796,7 @@
                                     {%- set output.time = values[i:i+last_values] | map(attribute=time_key) | list -%}
                                     {%- set output.time_min = _format_date(output.time[index_min], time_format | default(none)) -%}
                                     {%- set output.time_max = _format_date(output.time[index_max], time_format | default(none)) -%}
-                                    {%- set output.is_now = values[i][time_key] < _now < values[i][time_key] + timedelta(hours=h) -%}
+                                    {%- set output.is_now = values[i][time_key] <= _now < values[i][time_key] + timedelta(hours=h) -%}
                                 {%- endif -%}
                             {%- endfor -%}
                         {#- determine estimated_costs if kwh is provided -#}
