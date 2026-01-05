@@ -3,7 +3,17 @@
 [![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
 [![Paypal](https://img.shields.io/badge/PayPal-00457C?&color=00457c&logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/thefes)
 
-<img width="512" height="256" alt="dark_logo" src="/logo/dark_logo.png" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/logo/TheFesCasa_logo_dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="/logo/TheFesCasa_logo_light.png">
+  <img alt="Shows a black thefes.casa logo in light color mode and a white one in dark color mode." src="/logo/TheFesCasa_logo_light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/logo/dark_logo.png">
+  <source media="(prefers-color-scheme: light)" srcset="/logo/logo.png">
+  <img alt="Shows a black logo Cheapest Energy hours logo in light color mode and a white one in dark color mode." src="/logo/dark_logo.png">
+</picture>
 
 A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer (and much more)
 
