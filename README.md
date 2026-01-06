@@ -1,7 +1,9 @@
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
-![Version](https://img.shields.io/github/v/release/TheFes/cheapest-energy-hours)
-[![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
-[![Paypal](https://img.shields.io/badge/PayPal-00457C?&color=00457c&logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/thefes)
+<p align="center">
+  [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
+  ![Version](https://img.shields.io/github/v/release/TheFes/cheapest-energy-hours)
+  [![Buy me a coffe](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://www.buymeacoffee.com/TheFes)
+  [![Paypal](https://img.shields.io/badge/PayPal-00457C?&color=00457c&logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/thefes)
+</p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="/logo/TheFesCasa_logo_dark.png">
@@ -9,13 +11,13 @@
   <img alt="Shows a black thefes.casa logo in light color mode and a white one in dark color mode." src="/logo/TheFesCasa_logo_light.png">
 </picture>
 
-<center>
+<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="/logo/dark_logo.png">
     <source media="(prefers-color-scheme: light)" srcset="/logo/logo.png">
     <img alt="Shows a black logo Cheapest Energy hours logo in light color mode and a white one in dark color mode." src="/logo/dark_logo.png">
   </picture>
-</center>
+</p>
 
 A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer (and much more)
 
