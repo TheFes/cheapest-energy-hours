@@ -9,11 +9,13 @@
   <img alt="Shows a black thefes.casa logo in light color mode and a white one in dark color mode." src="/logo/TheFesCasa_logo_light.png">
 </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/logo/dark_logo.png">
-  <source media="(prefers-color-scheme: light)" srcset="/logo/logo.png">
-  <img alt="Shows a black logo Cheapest Energy hours logo in light color mode and a white one in dark color mode." src="/logo/dark_logo.png">
-</picture>
+<center>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="/logo/dark_logo.png">
+    <source media="(prefers-color-scheme: light)" srcset="/logo/logo.png">
+    <img alt="Shows a black logo Cheapest Energy hours logo in light color mode and a white one in dark color mode." src="/logo/dark_logo.png">
+  </picture>
+</center>
 
 A jinja macro to easily find the cheapest block of hours to know when to turn on your dryer (and much more)
 
