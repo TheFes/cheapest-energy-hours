@@ -661,7 +661,7 @@
                                     {%- if ns.wanted > 0 -%}
                                         {# create list with value blocks #}
                                         {%- set ns.parts = [] -%}
-                                        {%- for i in range((values | count - split_dp) | round(0) | int) -%}
+                                        {%- for i in range((values | count - split_dp + 1) | round(0) | int) -%}
                                             {%- set part = values[i:i+split_dp] | reject('in', ns.selected) | list -%}
                                             {%- set avg = part | map(attribute=value_key) | average if part | count > 0 else none -%}
                                             {%- set ns.parts = ns.parts + [dict(avg=avg, count=part|count, part=part)] -%}
