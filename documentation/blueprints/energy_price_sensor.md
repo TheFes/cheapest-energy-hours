@@ -1,4 +1,4 @@
-# Energy Price Sensor Blueprint
+kook# Energy Price Sensor Blueprint
 
 <img width="512" height="256" alt="dark_logo" src="/logo/dark_logo.png" />
 
@@ -64,52 +64,56 @@ All prices will be multiplied with this value. This will be applied before addin
 #### EASYENERGY
 
 ```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      entity_id: sensor.easyenergy_ceh_prices
-      source: easyenergy 
-      add_vat: 21 # optional, remove to get prices without VAT
-  name: EasyEnergy Cheapest Energy Hours
-  unique_id: 9aedf25f-cfa7-4603-bcff-3f0c22a59fa1
+template:
+  - use_blueprint:
+      path: TheFes/energy_price_sensor.yaml
+      input:
+        entity_id: sensor.easyenergy_ceh_prices
+        source: easyenergy 
+        add_vat: 21 # optional, remove to get prices without VAT
+    name: EasyEnergy Cheapest Energy Hours
+    unique_id: 9aedf25f-cfa7-4603-bcff-3f0c22a59fa1
 ```
 
 #### ENERGYZERO AND EASYENERGY
 
 ```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      entity_id: sensor.energyzero_ceh_prices
-      source: energyzero
-      add_vat: 21
-  name: EnergyZero Cheapest Energy Hours
-  unique_id: b41db1c1-8780-4708-9a09-091536305a9e
+template:
+  - use_blueprint:
+      path: TheFes/energy_price_sensor.yaml
+      input:
+        entity_id: sensor.energyzero_ceh_prices
+        source: energyzero
+        add_vat: 21
+    name: EnergyZero Cheapest Energy Hours
+    unique_id: b41db1c1-8780-4708-9a09-091536305a9e
 ```
 
 #### NORDPOOL
 
 ```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      entity_id: sensor.nordpool_ceh_prices
-      source: nordpool
-      resolution: 60 # this will give hourly prices, remove the line or set to 15 for quarter-hourly prices
-      add_vat: 21
-      add_fixed: 0.023 # the fixed price (including VAT) added by your energy provider
-  name: Nordpool Cheapest Energy Hours
-  unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
+template:
+  - use_blueprint:
+      path: TheFes/energy_price_sensor.yaml
+      input:
+        entity_id: sensor.nordpool_ceh_prices
+        source: nordpool
+        resolution: 60 # this will give hourly prices, remove the line or set to 15 for quarter-hourly prices
+        add_vat: 21
+        add_fixed: 0.023 # the fixed price (including VAT) added by your energy provider
+    name: Nordpool Cheapest Energy Hours
+    unique_id: 881b6558-26c6-44bb-81c5-d86c05451bd4
 ```
 
 #### TIBBER
 
 ```yaml
-- use_blueprint:
-    path: TheFes/energy_price_sensor.yaml
-    input:
-      entity_id: sensor.tibber_ceh_prices
-      source: tibber
-  name: Tibber Cheapest Energy Hours
-  unique_id: 2fc0bc4c-10c0-4844-8c12-ff50a80d44c8
+template:
+  - use_blueprint:
+      path: TheFes/energy_price_sensor.yaml
+      input:
+        entity_id: sensor.tibber_ceh_prices
+        source: tibber
+    name: Tibber Cheapest Energy Hours
+    unique_id: 2fc0bc4c-10c0-4844-8c12-ff50a80d44c8
 ```
