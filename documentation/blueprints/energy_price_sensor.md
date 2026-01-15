@@ -1,4 +1,4 @@
-kook# Energy Price Sensor Blueprint
+# Energy Price Sensor Blueprint
 
 <img width="512" height="256" alt="dark_logo" src="/logo/dark_logo.png" />
 
