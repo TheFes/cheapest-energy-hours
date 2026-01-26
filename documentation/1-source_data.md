@@ -53,17 +53,17 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |Data Provider|core integraton|source_settings|parameters|comment|
 |---|---|---|---|---|
 |[Amber Electric](https://www.home-assistant.io/integrations/amberelectric/)|Yes|`amber_electric`|`attr_all='forecasts', time_key='start_time', value_key='per_kwh'`||
-|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
-|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
+|[EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>)|Yes|||Using the [blueprint](./blueprints/energy_price_sensor.md)|
+|[EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>)|Yes|||Using the [blueprint](./blueprints/energy_price_sensor.md)|
 |[ENTSO-E](<https://github.com/JaccoR/hass-entso-e>)|No|`entso_e`|`attr_today='prices_today', attr_tomorrow='prices_tomorrow', time_key='time', value_key='price'`||
 |[Frank Energie](<https://github.com/bajansen/home-assistant-frank_energie>)|No|`frank-energie`|`attr_all='prices', time_key='from', value_key='price'`||
 |[GE-Spot](<https://github.com/enoch85/ge-spot>)|No|`ge-spot` or `ge-spot-hourly`|`attr_today='today_interval_prices', attr_tomorrow='tomorrow_interval_prices', time_key='time', value_key='value'`|Interval prices are per 15m, replace `*_interval_prices` with `*_hourly_prices` for prices per 60m|
 |[Octopus Energy](<https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy>)|No|`octopus-energy`|`attr_all='rates', value_key='value_incl_vat'`||
 |[Omie](<https://github.com/luuuis/hass_omie>)|No|||Using the template sensor [below](#omie)|
 |[Nordpool (custom)](<https://github.com/custom-components/nordpool>)|No|||all set by default, but `source_settings='nordpool'` can be used as well|
-|[Nordpool (core)](<https://www.home-assistant.io/integrations/nordpool/>)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
+|[Nordpool (core)](<https://www.home-assistant.io/integrations/nordpool/>)|Yes|||Using the [blueprint](./blueprints/energy_price_sensor.md)|
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
-|[Tibber (core)](https://www.home-assistant.io/integrations/tibber/)|Yes|||Using the blueprint [below](#creating-a-forecast-sensor-using-the-action)|
+|[Tibber (core)](https://www.home-assistant.io/integrations/tibber/)|Yes|||Using the [blueprint](./blueprints/energy_price_sensor.md)|
 |[Tibber (custom)](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No||`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
 |[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`zonneplan`|`attr_all='forecast', value_key='electricity_price'`||
 
@@ -97,9 +97,9 @@ template:
 
 ## TEMPLATE SENSOR CONFIGURATION
 
-### CREATING A FORECAST SENSOR USING THE ACTION
+### CREATING A FORECAST SENSOR USING THE ACTION (USING THE TEMPLATE BLUEPRINT)
 
-Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>) and [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>) integrations) don't provide the forecast by default in an attribute. However they provide an action to retrieve the prices. 
+Some integrations (like the core [EnergyZero](<https://www.home-assistant.io/integrations/energyzero/>), [EasyEnergy](<https://www.home-assistant.io/integrations/easyenergy/>), [Nordpool](<https://www.home-assistant.io/integrations/nordpool/>) and [Tibber](https://www.home-assistant.io/integrations/tibber/) integrations) don't provide the forecast by default in an attribute. However they provide an action to retrieve the prices. 
 
 I've createad a blueprint to create a template sensor which stores the prices in an attribute. The template sensor will store the prices for yesterday, today and tomorrow (when available). It will trigger every 15 minutes to ensure that the state is updated and reflects the current price.
 
