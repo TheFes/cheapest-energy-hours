@@ -1,4 +1,4 @@
-{%- set _version = 'v7.2.0'-%}
+{%- set _version = 'v7.2.1'-%}
 
 {#- set settings for source sensors -#}
 {#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
@@ -128,7 +128,7 @@
         {# check if all days use same datapoints per hour #}
         {%- set dph_ystrd = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() - timedelta(days=1)) | string) | list | count / 24) | round | int -%}
         {%- set dph_today = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', time.date() | string) | list | count / 24) | round | int -%}
-        {%- set dph_tmrw = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() + timedelta(days=1)) | string) | list  | count / 24) | round | int -%}
+        {%- set dph_tmrw = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() + timedelta(days=1)) | string) | list | count / 24) | round | int -%}
         {%- set dph_list = [dph_ystrd, dph_today, dph_tmrw, force_dph] | select | list -%}
         {%- endif -%}
     {%- set dph = force_dph or use_hourly_avg | int or dph_list | max -%}
@@ -611,7 +611,7 @@
                     {%- elif dp_minutes < wp_minutes and w is not none -%}
                         {%- set weight_adjust = namespace(weight=[]) -%}
                         {%- for item in w -%}
-                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * int(round(wp_minutes/dp_minutes),0) -%}
+                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * (wp_minutes/dp_minutes) | round | int -%}
                         {%- endfor -%}
                         {%- set w = weight_adjust.weight -%}
                     {%- endif -%}
@@ -791,7 +791,7 @@
                     {%- else -%} {#- end for calucations for split -#}
                         {#- create output for all modes if split is set to false -#}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, compare=none, time_min=none, time_max=none, prices_list=[], list=[], is_now=false, extreme_now=none, estimated_costs="unknown") -%}
-                            {%- set last_values = (h * no_weight_points) | round(0) | int -%}
+                            {%- set last_values = (h * [no_weight_points, dp] | max) | round(0) | int -%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
                                 {%- set prices_list = values[i:i + last_values] | map(attribute=value_key) | list -%}
                                 {%- set original_price_list =
@@ -800,6 +800,7 @@
                                     else prices_list
                                 -%}
                                 {#- calculate (weighted) average price -#}
+
                                     {%- if w is not none -%}
                                         {%- set weighted = namespace(average=0, original=0) -%}
                                         {%- for weight in w -%}
