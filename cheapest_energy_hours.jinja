@@ -1,4 +1,4 @@
-{%- set _version = 'v7.2.1'-%}
+{%- set _version = 'v7.2.2'-%}
 
 {#- set settings for source sensors -#}
 {#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
@@ -548,7 +548,8 @@
                                         plot_sensor=plot_sensor,
                                         plot_attr=plot_attr,
                                         split=split,
-                                        use_hourly_avg=use_hourly_avg
+                                        use_hourly_avg=use_hourly_avg,
+                                        dph=dph
                                     )
             -%}
             {%- set set_by_macro = dict(macro_input.items() | reject('in', user_input.items())) -%}
@@ -609,11 +610,13 @@
                         {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
                 {# add weights for additional datapoints if needed #}
                     {%- elif dp_minutes < wp_minutes and w is not none -%}
+                        {%- set multiplier = (wp_minutes/dp_minutes) | round | int -%}
                         {%- set weight_adjust = namespace(weight=[]) -%}
                         {%- for item in w -%}
-                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * (wp_minutes/dp_minutes) | round | int -%}
+                            {%- set weight_adjust.weight = weight_adjust.weight + [item] * multiplier -%}
                         {%- endfor -%}
                         {%- set w = weight_adjust.weight -%}
+                        {%- set no_weight_points = no_weight_points * multiplier -%}
                     {%- endif -%}
             {#- debugging data -#}
                 {%- if debug -%}
@@ -791,7 +794,8 @@
                     {%- else -%} {#- end for calucations for split -#}
                         {#- create output for all modes if split is set to false -#}
                             {%- set output = namespace(average=none, start=none, min=none, max=none, weighted_average=none, compare=none, time_min=none, time_max=none, prices_list=[], list=[], is_now=false, extreme_now=none, estimated_costs="unknown") -%}
-                            {%- set last_values = (h * [no_weight_points, dp] | max) | round(0) | int -%}
+                            {%- set last_values = (h * no_weight_points) | round(0) | int -%}
+                            {%- set to_add = dict(dp=dp, no_weight_points=no_weight_points, dph=dph)-%}
                             {%- for i in range(values | count - (last_values - 1)) -%}
                                 {%- set prices_list = values[i:i + last_values] | map(attribute=value_key) | list -%}
                                 {%- set original_price_list =
@@ -800,7 +804,6 @@
                                     else prices_list
                                 -%}
                                 {#- calculate (weighted) average price -#}
-
                                     {%- if w is not none -%}
                                         {%- set weighted = namespace(average=0, original=0) -%}
                                         {%- for weight in w -%}
