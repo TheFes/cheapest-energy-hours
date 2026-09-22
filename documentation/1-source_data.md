@@ -65,7 +65,7 @@ If your provider is missing, you can create a Pull Request to add them, or creat
 |[Spain electriciy hourly pricing (PVPC)](<https://www.home-assistant.io/integrations/pvpc_hourly_pricing/>)|Yes||Using the template sensor [below](#spain-electricity-hourly-pricing-pvpc)|
 |[Tibber (core)](https://www.home-assistant.io/integrations/tibber/)|Yes|||Using the [blueprint](./blueprints/energy_price_sensor.md)|
 |[Tibber (custom)](<https://github.com/Danielhiversen/home_assistant_tibber_custom>)|No||`attr_today='today', attr_tomorrow='tomorrow', datetime_in_data=false`|This uses the custom component, not the core integration|
-|[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`zonneplan`|`attr_all='forecast', value_key='electricity_price'`||
+|[Zonneplan](<https://github.com/fsaris/home-assistant-zonneplan-one>)|No|`zonneplan`|`attr_all='forecast', value_key='electricity_price'`|Supports both old format (`electricity_price`/`datetime` keys) and new format (`price_tax_included.amount`/`start_date` keys, 15-minute intervals). The new integration uses sensor `sensor.zonneplan_current_quarter_hourly_electricity_tariff`|
 
 ## USING THE ACTION RESPONSE AS INPUT FOR THE MACRO
 

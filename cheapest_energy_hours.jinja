@@ -1,4 +1,4 @@
-{%- set _version = 'v7.2.3'-%}
+{%- set _version = 'v7.2.4'-%}
 
 {#- set settings for source sensors -#}
 {#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
@@ -394,6 +394,20 @@
         {%- elif price_data is not none -%}
             {%- set data = [] -%}
             {%- set valid_price_data = false -%}
+        {%- endif -%}
+        {%- if source_settings == 'zonneplan' and data is defined and data | count > 0 and data[0] is mapping -%}
+            {%- if value_key not in data[0] or time_key not in data[0] -%}
+                {%- set ns_zp = namespace(data=[]) -%}
+                {%- for item in data if item is mapping -%}
+                    {%- set zp_time = item.get('start_date', item.get('datetime', item.get(time_key))) -%}
+                    {%- set zp_price_nested = item.get('price_tax_included') -%}
+                    {%- set zp_price = item.get('electricity_price', zp_price_nested.get('amount') if zp_price_nested is mapping else none) -%}
+                    {%- if zp_time | as_datetime(none) is not none and zp_price | is_number -%}
+                        {%- set ns_zp.data = ns_zp.data + [{time_key: zp_time, value_key: zp_price}] -%}
+                    {%- endif -%}
+                {%- endfor -%}
+                {%- set data = ns_zp.data -%}
+            {%- endif -%}
         {%- endif -%}
         {#- check if sensor has valid data -#}
         {%- if data is defined -%}
