@@ -18,6 +18,7 @@
   * Setting `look_ahead` to `true` will move your data range, and the macro has no knowledge about the data in the past. So if the cheapest time is eg `13:00`, there will be a new cheapest time after that hour is passed. To avoid issues with changing data, it might be best to use a [trigger based template sensor](https://www.home-assistant.io/integrations/template/#trigger-based-template-binary-sensors-buttons-images-numbers-selects-and-sensors).
 * conversion of input to match source data and/or provided `program`, `weight` or `no_weight_points` (see [3. ADVANCED DATA](./3-advanced_data.md))
   * `hours`, `start` and `end` will be converted to be divisible by 5, 10, 12, 15 or 30 minutes (whaterever is closest to the current setting), `hours` and `end` will be rounded up, `start` will be rounded down. If there is a conflict between 2 of these calculations (eg `hours` is divisible by 12 minutes, and `start` by 10 minutes), they will all be converted to be divisible by 5 minutes.
+  * With `weight` at a finer resolution than the price data (eg `no_weight_points: 60` on 15-minute prices) `start` and `end` are only rounded to a whole weight point (see [3. ADVANCED DATA](./3-advanced_data.md#weights-finer-than-the-price-data)).
 
 ## PARAMETERS
 
