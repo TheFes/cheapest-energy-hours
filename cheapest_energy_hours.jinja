@@ -462,9 +462,11 @@
                     {%- else -%}
                         {%- set end = today_at(end) if end is string and ':' in end and end | replace(':', '') | is_number else today_at() -%}
                         {%- set end = end + day if end == today_at() else end -%}
-                        {%- set end = end + day if include_tomorrow else end -%}
-                    {%- endif -%}
-                    {%- if original_start > end -%} {#- START = 20:00, END = 8:00 -#}
+-                       {%- set end = end + day if include_tomorrow else end -%}
++                       {#- a window that crosses midnight (eg 20:00-08:00) is placed by the check below, so include_tomorrow must not push its end a day further -#}
++                       {%- set end = end + day if include_tomorrow and not original_start > end else end -%}
+                     {%- endif -%}
+                     {%- if original_start > end -%} {#- START = 20:00, END = 8:00 -#}
                         {%- if end > _now and not start_is_dt -%} {#- NOW() = 04:00, END = 8:00 -#}
                             {%- set start = start - day -%} {#- Set start yesterday -#}
                         {%- elif end < _now and not end_is_dt -%} {#- NOW() = 12:00, END = 8:00 -#}
