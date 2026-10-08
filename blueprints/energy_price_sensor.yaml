@@ -264,7 +264,7 @@ variables:
     {% else %}
       {% set delta = 0 %}
     {% endif %}
-    {{ (today_at('00:00') + timedelta(days=delta)).strftime('%Y-%m-%d %H:%M:%S') }}
+    {{ (today_at('00:00') + timedelta(days=delta, seconds=-1)).strftime('%Y-%m-%d %H:%M:%S') }}
   mapping:
     easyenergy:
       time_key: timestamp
@@ -447,5 +447,5 @@ sensor:
   attributes:
     prices: "{{ updated_prices }}"
     last_fetch_time: "{{ fetch_time }}"
-    blueprint_version: 202551107
+    blueprint_version: 20261008
   availability: "{{ prices_today >= 23 }}"
