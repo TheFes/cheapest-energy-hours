@@ -1,4 +1,4 @@
-{%- set _version = 'v7.3.0'-%}
+{%- set _version = 'v7.3.1'-%}
 
 {#- set settings for source sensors -#}
 {#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
@@ -648,7 +648,19 @@
                 -%}
             {#- weights finer than the prices: weight points per price slot, number of weights, exact hours, and the first and last candidate start (in weight points after the first slot) -#}
                 {%- if mw and values -%}
-                    {%- set S, L, t0, h = (no_weight_points / dph) | int, w | count, values[0][time_key], w | count / no_weight_points -%}
+                    {%- set L, t0, h = w | count, values[0][time_key], w | count / no_weight_points -%}
+                    {#- common grid: gcd of price slot and weight point length (minutes), so weight points need not line up with price slots (eg 10 minute weights on 15 minute prices) -#}
+                    {%- set gg = namespace(a=dp_minutes | int, b=wp_minutes | int) -%}
+                    {%- for _ in range(20) -%}
+                        {%- if gg.b == 0 -%}
+                            {%- break -%}
+                        {%- endif -%}
+                        {%- set r = gg.a % gg.b -%}
+                        {%- set gg.a = gg.b -%}
+                        {%- set gg.b = r -%}
+                    {%- endfor -%}
+                    {#- sc: grid cells per price slot, wc: grid cells per weight point -#}
+                    {%- set sc, wc = (dp_minutes | int) // gg.a, (wp_minutes | int) // gg.a -%}
                     {%- set first = [((start - t0).total_seconds() * no_weight_points // 3600) | int, 0] | max -%}
                     {%- set last = (([end, values[-1][time_key] + timedelta(minutes=dp_minutes)] | min - t0).total_seconds() * no_weight_points // 3600) | int - L -%}
                 {%- endif -%}
@@ -824,13 +836,16 @@
                             {%- if mw -%}
                                 {%- set cum = namespace(w=[0]) -%}
                                 {%- for x in w -%}
-                                    {%- set cum.w = cum.w + [cum.w[-1] + x] -%}
+                                    {%- for _ in range(wc) -%}
+                                        {%- set cum.w = cum.w + [cum.w[-1] + x / wc] -%}
+                                    {%- endfor -%}
                                 {%- endfor -%}
                                 {%- set best = namespace(c=none, a=none) -%}
                                 {%- for c in range(first, last + 1) -%}
+                                    {%- set a0 = c * wc -%}
                                     {%- set cost = namespace(v=0) -%}
-                                    {%- for k in range(c // S, (c + L - 1) // S + 1) -%}
-                                        {%- set cost.v = cost.v + values[k][value_key] * (cum.w[[(k + 1) * S, c + L] | min - c] - cum.w[[k * S, c] | max - c]) -%}
+                                    {%- for k in range(a0 // sc, (a0 + L * wc - 1) // sc + 1) -%}
+                                        {%- set cost.v = cost.v + values[k][value_key] * (cum.w[[(k + 1) * sc, a0 + L * wc] | min - a0] - cum.w[[k * sc, a0] | max - a0]) -%}
                                     {%- endfor -%}
                                     {%- set a = (cost.v / w | sum) | round(9) -%}
                                     {%- if loop.first or (a < best.a if lowest else a > best.a) or (a == best.a and latest_possible | bool) -%}
@@ -840,7 +855,16 @@
                                 {%- endfor -%}
                                 {%- set selection, window = values, namespace(v=[]) -%}
                                 {%- for j in range(L) -%}
-                                    {%- set window.v = window.v + [dict(values[(best.c + j) // S], **{time_key: t0 + timedelta(minutes=(best.c + j) * wp_minutes)})] -%}
+                                    {%- set p = best.c + j -%}
+                                    {%- set pe = namespace(v=0, o=0) -%}
+                                    {%- for k in range((p * wc) // sc, ((p + 1) * wc - 1) // sc + 1) -%}
+                                        {%- set ov = ([(k + 1) * sc, (p + 1) * wc] | min - [k * sc, p * wc] | max) / wc -%}
+                                        {%- set pe.v = pe.v + values[k][value_key] * ov -%}
+                                        {%- set pe.o = pe.o + (values[k].original_value if pt != 0 else 0) * ov -%}
+                                    {%- endfor -%}
+                                    {%- set new = {time_key: t0 + timedelta(minutes=p * wp_minutes), value_key: pe.v} -%}
+                                    {%- set new = dict(new, original_value=pe.o) if pt != 0 else new -%}
+                                    {%- set window.v = window.v + [new] -%}
                                 {%- endfor -%}
                                 {%- set values = window.v -%}
                             {%- endif -%}
