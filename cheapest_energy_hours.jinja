@@ -1,4 +1,4 @@
-{%- set _version = 'v7.3.2'-%}
+{%- set _version = 'v7.3.3'-%}
 
 {#- set settings for source sensors -#}
 {#- list values are 'attr_today', 'attr_tomorrow', 'attr_all', 'time_key', 'value_key' -#}
@@ -624,7 +624,8 @@
                 {# split hours if needed #}
                     {%- if dp_minutes > wp_minutes and not mw -%}
                         {% set data, dph = _rebuild_data(data, time_key, value_key, price_factor, use_hourly_avg, _now, no_weight_points) %}
-                        {%- set dp = (h * dph) | round(0, 'ceil') | int -%}
+                        {#- h is rounded to 3 decimals, so h * dph can be slightly above a whole number (eg 4.167 * 12 = 50.004), which would add an extra datapoint when ceiled -#}
+                        {%- set dp = ((h * dph) - 0.05) | round(0, 'ceil') | int -%}
                         {%- set dp_minutes, wp_minutes = 60 / dph, 60 / no_weight_points -%}
                 {# add weights for additional datapoints if needed #}
                     {%- elif dp_minutes < wp_minutes and w is not none -%}
@@ -693,9 +694,10 @@
                         {# check if a minimum number of hours for split is provided #}
                             {%- if min_split_hours is not none -%}
                                 {# create split data using minimum number of hours #}
-                                {%- set split_dp = [min_split_hours * dph, h * dph] | min | round(0) | int -%}
-                                {%- set ns = namespace(parts=[], selected=[], wanted=h*dph) -%}
-                                {%- for i in range((h*dph) | int) -%}
+                                {#- use dp (whole number of datapoints) instead of h * dph, as h is rounded to 3 decimals and h * dph is then not a whole number for eg 4.08 hours -#}
+                                {%- set split_dp = [min_split_hours * dph, dp] | min | round(0) | int -%}
+                                {%- set ns = namespace(parts=[], selected=[], wanted=dp) -%}
+                                {%- for i in range(dp) -%}
                                     {# check if there are still values to be added #}
                                     {%- if ns.wanted > 0 -%}
                                         {# create list with value blocks #}
