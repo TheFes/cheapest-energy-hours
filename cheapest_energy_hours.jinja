@@ -148,10 +148,12 @@
         {%- set rebuild.data = [] -%}
         {%- for item in output | default(data) -%}
             {%- if not loop.last -%}
-                {%- set item_dph = (3600 / (loop.nextitem[time_key] - item[time_key]).seconds) | int -%}
+                {%- set gap = (loop.nextitem[time_key] - item[time_key]).total_seconds() -%}
             {%- else -%}
-                {%- set item_dph = (3600 / (item[time_key] -loop.previtem[time_key]).seconds) | int -%}
+                {%- set gap = (item[time_key] - loop.previtem[time_key]).total_seconds() -%}
             {%- endif -%}
+            {#- item_dph is used for range() and slicing so it needs to be an int, use at least 1 to prevent division by zero on gaps of more than an hour -#}
+            {%- set item_dph = [(3600 / gap) | int, 1] | max -%}
             {%- if item_dph < dph -%}
                 {%- for i in range((dph/item_dph)|int) -%}
                     {%- set time = item[time_key] + timedelta(hours=i*(1/dph)) -%}
