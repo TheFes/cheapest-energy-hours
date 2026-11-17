@@ -125,12 +125,23 @@
             {%- set rebuild.data = rebuild.data + [{time_key: time, value_key: item[value_key] * price_factor}] -%}
         {%- endfor -%}
         {%- set output = rebuild.data | sort(attribute=time_key) -%}
-        {# check if all days use same datapoints per hour #}
-        {%- set dph_ystrd = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() - timedelta(days=1)) | string) | list | count / 24) | round | int -%}
-        {%- set dph_today = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', time.date() | string) | list | count / 24) | round | int -%}
-        {%- set dph_tmrw = (output | map(attribute=time_key) | map('as_local') | map('string') | select('search', (time.date() + timedelta(days=1)) | string) | list | count / 24) | round | int -%}
-        {%- set dph_list = [dph_ystrd, dph_today, dph_tmrw, force_dph] | select | list -%}
-        {%- endif -%}
+        {#- determine datapoints per hour for each day based on the smallest gap between consecutive datapoints
+            (counting the datapoints per day fails when price_data doesn't cover full days) -#}
+        {%- set gaps = namespace(data=[]) -%}
+        {%- for item in output -%}
+            {%- set gap = (loop.nextitem[time_key] - item[time_key]).total_seconds() if not loop.last else 0 -%}
+            {%- if gap > 0 -%}
+                {%- set gaps.data = gaps.data + [dict(day=(item[time_key] | as_local).date() | string, gap=gap)] -%}
+            {%- endif -%}
+        {%- endfor -%}
+        {%- set dph_ns = namespace(dph_list=[]) -%}
+        {%- for day in gaps.data | map(attribute='day') | unique -%}
+            {%- set min_gap = gaps.data | selectattr('day', 'eq', day) | map(attribute='gap') | min -%}
+            {%- set dph_ns.dph_list = dph_ns.dph_list + [(3600 / min_gap) | round | int] -%}
+        {%- endfor -%}
+        {#- check if all days use same datapoints per hour -#}
+        {%- set dph_list = dph_ns.dph_list | select | list or [1] -%}
+    {%- endif -%}
     {%- set dph = force_dph or use_hourly_avg | int or dph_list | max -%}
     {# rebuild data if needed #}
     {%- if force_dph or dph_list | reject('eq', dph) | list | count > 0 -%}
